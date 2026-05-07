@@ -372,15 +372,15 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 .login-err{font-size:11px;color:#b91c1c;margin-top:12px;min-height:16px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;font-weight:500;z-index:9999;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 /* ── PRESETS TAB ── */
-.presets-layout{flex:1;overflow-y:auto;padding:16px;background:#f8f7f4;display:flex;flex-direction:column;gap:12px}
+.presets-layout{flex:1;overflow-y:auto;padding:16px 24px;background:#f8f7f4;display:flex;flex-direction:column;gap:12px}
 .preset-section{background:#fff;border-radius:10px;border:0.5px solid #e8e8e4;overflow:hidden}
 .preset-section-hd{padding:10px 14px;border-bottom:0.5px solid #f0f0ec;font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:6px}
-.preset-row{display:flex;align-items:center;padding:10px 14px;border-bottom:0.5px solid #f8f8f6;gap:10px}
+.preset-row{display:flex;align-items:center;padding:10px 14px;border-bottom:0.5px solid #f8f8f6;gap:16px}
 .preset-row:last-child{border-bottom:none}
-.preset-lbl{flex:1}
+.preset-lbl{width:200px;flex-shrink:0}
 .preset-lbl-title{font-size:11px;font-weight:500;color:#1a1a1a}
 .preset-lbl-sub{font-size:9px;color:#aaa;margin-top:1px}
-.preset-ctrl{flex-shrink:0;display:flex;align-items:center;gap:6px}
+.preset-ctrl{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .preset-save-me{font-size:9px;color:var(--accent);cursor:pointer;padding:2px 7px;border-radius:4px;border:0.5px solid var(--accent-border);background:var(--accent-light)}
 .preset-save-me:hover{background:var(--accent-border)}
 .preset-save-all{font-size:9px;color:#fff;cursor:pointer;padding:2px 7px;border-radius:4px;border:none;background:var(--accent)}
@@ -655,18 +655,15 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <button class="btn btn-primary btn-sm" id="add-lead-btn">+ Add lead</button>
   </div>
   <div class="pin-bar">
-    <span style="color:#f97316;font-size:12px">📍</span>
+    <span style="color:var(--accent);font-size:12px">📍</span>
     <input id="leads-pin-inp" placeholder="Drop a pin — paste any address…">
     <div class="pib drop" id="leads-pin-drop">Drop pin</div>
     <div class="pib" id="leads-pin-clear">Clear all</div>
   </div>
   <div class="saved-pins" id="leads-saved-pins" style="display:none"></div>
-  <div class="leads-wrap">
-    <div class="pipeline-bar" id="pipeline-bar" style="display:none">
-      <div class="pb-label"><span id="pb-total">Pipeline</span><span style="color:#aaa;font-size:8px">from Google Sheets Stages tab</span></div>
-      <div class="pb-track" id="pb-track"></div>
-    </div>
-    <div class="kanban-scroll" id="kanban-scroll">
+  <div class="leads-layout">
+    <div class="pipeline-bar" id="pipeline-bar" style="display:none"></div>
+    <div class="kanban-wrap" id="kanban-scroll">
       <div style="padding:20px;text-align:center;font-size:11px;color:#aaa;width:100%">Loading leads…</div>
     </div>
   </div>
@@ -2055,37 +2052,37 @@ async function loadLeads(){
 }
 function renderPipelineBar(){
   const pb=document.getElementById('pipeline-bar');
-  const track=document.getElementById('pb-track');
-  const total=document.getElementById('pb-total');
   if(!pb||!STAGES.length)return;
-  pb.style.display='block';
+  pb.style.display='flex';
   const counts={};STAGES.forEach(s=>counts[s.name]=0);
   leads.forEach(l=>{if(counts[l.stage]!==undefined)counts[l.stage]++;});
   const totalLeads=leads.length;
-  if(total)total.textContent=`Pipeline · ${totalLeads} lead${totalLeads!==1?'s':''}`;
-  track.innerHTML=STAGES.map(s=>{
-    const n=counts[s.name]||0;
-    const w=totalLeads?Math.max(10,Math.round(n/totalLeads*100)):Math.round(100/STAGES.length);
-    return`<div class="pb-seg" style="background:${s.color};width:${w}%" title="${s.name}: ${n}">${s.name.split(' ')[0]} ${n}</div>`;
-  }).join('');
+  pb.innerHTML=`<span style="font-size:10px;font-weight:600;color:#1a1a1a;white-space:nowrap">Pipeline · ${totalLeads} lead${totalLeads!==1?'s':''}</span>`+
+    STAGES.map(s=>{
+      const n=counts[s.name]||0;
+      return`<div class="pb-pill${n>0?' active':''}" style="${n>0?'background:'+s.color+'22;color:'+s.color+';border-color:'+s.color+'44':''}">${s.name} <b style="margin-left:3px">${n}</b></div>`;
+    }).join('');
 }
 function renderKanban(){
   const el=document.getElementById('kanban-scroll');if(!el)return;
   if(!STAGES.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:#aaa">No stages configured — check your Stages Sheet tab</div>';return;}
   el.innerHTML=STAGES.map(s=>{
     const cards=leads.filter(l=>l.stage===s.name);
-    return`<div class="kb-col" id="kb-${s.name.replace(/\s+/g,'-')}" data-stage="${s.name}" 
+    return`<div class="kb-col" id="kb-${s.name.replace(/\s+/g,'-')}" data-stage="${s.name}"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
         ondrop="dropCard(event,this)">
-      <div class="kb-hd"><div class="kb-dot" style="background:${s.color}"></div><div class="kb-title">${s.name}</div><div class="kb-cnt">${cards.length}</div></div>
+      <div class="kb-col-hd">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.name}</span>
+        <span class="kb-col-count">${cards.length}</span>
+      </div>
       <div class="kb-cards" id="kb-cards-${s.name.replace(/\s+/g,'-')}">
         ${cards.map(c=>renderKanbanCard(c)).join('')}
       </div>
       <div class="kb-add" onclick="addLead('${s.name}')">+ Add card</div>
     </div>`;
   }).join('');
-  document.querySelectorAll('.kc').forEach(c=>{
+  document.querySelectorAll('.kcard').forEach(c=>{
     c.addEventListener('dragstart',e=>{dragCard=c;dragSource=c.closest('.kb-col')?.getAttribute('data-stage');c.classList.add('dragging');});
     c.addEventListener('dragend',()=>{c.classList.remove('dragging');document.querySelectorAll('.kb-col').forEach(col=>col.classList.remove('drag-over'));});
   });
@@ -2094,33 +2091,32 @@ function renderKanbanCard(lead){
   const tags=[];
   if(lead.contactMethod){lead.contactMethod.split(',').forEach(m=>{
     const t=m.trim();
-    if(t==='iMessage')tags.push('<span class="tag t-im">iMessage</span>');
-    else if(t==='Google Voice')tags.push('<span class="tag t-gv">GV</span>');
-    else if(t==='MoeGo')tags.push('<span class="tag t-mo">MoeGo</span>');
-    else if(t==='Email')tags.push('<span class="tag t-em">Email</span>');
-    else if(t==='Call')tags.push('<span class="tag t-ca">Call</span>');
-    else if(t)tags.push(`<span class="tag t-ca">${t}</span>`);
+    const colors={iMessage:'#22c55e',GV:'#3b82f6','Google Voice':'#3b82f6',MoeGo:'#f97316',Email:'#8b5cf6',Call:'#1d9e75'};
+    const c=colors[t]||'#888';
+    if(t)tags.push(`<span style="font-size:8px;padding:1px 6px;border-radius:8px;background:${c}22;color:${c};font-weight:600">${t}</span>`);
   });}
-  // Sub-stage bar only for Connected column
   const isConnected=lead.stage==='Connected'&&SUBSTAGES.length;
-  const subBar=isConnected?`<div class="sub-stage">
-    <div class="ss-label">${SUBSTAGES.map(s=>s.name).join(' → ')}</div>
-    <div class="ss-steps">${SUBSTAGES.map(s=>{
+  const subBar=isConnected?`<div style="margin-top:5px">
+    <div style="font-size:8px;color:#aaa;margin-bottom:3px">${SUBSTAGES.map(s=>s.name).join(' → ')}</div>
+    <div style="display:flex;gap:2px">${SUBSTAGES.map(s=>{
       const idx=SUBSTAGES.findIndex(ss=>ss.name===s.name);
       const cur=SUBSTAGES.findIndex(ss=>ss.name===lead.subStage);
-      const cls=idx<cur?'done':idx===cur?'active':'';
-      return`<div class="ss-step ${cls}"></div>`;
+      const bg=idx<cur?'#1d9e75':idx===cur?'var(--accent)':'#e8e8e4';
+      return`<div style="height:4px;flex:1;border-radius:2px;background:${bg}"></div>`;
     }).join('')}</div>
   </div>`:'';
-  return`<div class="kc" draggable="true" data-id="${lead.id}">
-    <div class="kc-name">${lead.name}</div>
-    <div class="kc-pet">${lead.pet||'—'}${lead.address?'·'+lead.address.split(',').slice(-2,-1)[0]?.trim():''}</div>
-    ${tags.length?`<div class="kc-tags">${tags.join('')}</div>`:''}
+  // Format lastContact date — strip ISO timestamp if present
+  let dateLabel=lead.lastContact||'';
+  if(dateLabel.includes('T'))dateLabel=dateLabel.split('T')[0];
+  return`<div class="kcard" draggable="true" data-id="${lead.id}">
+    <div class="kcard-name">${lead.name}</div>
+    <div class="kcard-detail">${lead.pet||'—'}${lead.address?' · '+lead.address.split(',').slice(-2,-1)[0]?.trim():''}</div>
+    ${tags.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${tags.join('')}</div>`:''}
     ${subBar}
-    <textarea class="kc-note" rows="2" placeholder="Note…" onchange="updateLeadNote('${lead.id}',this.value)">${lead.notes||''}</textarea>
-    <div class="kc-foot">
-      <div class="kc-date">${lead.lastContact||''}</div>
-      <div class="kc-btns">
+    <textarea style="width:100%;margin-top:6px;padding:4px 6px;border:0.5px solid #e8e8e4;border-radius:5px;font-size:9px;font-family:inherit;resize:none;color:#666;background:#fafaf8" rows="2" placeholder="Note…" onchange="updateLeadNote('${lead.id}',this.value)">${lead.notes||''}</textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+      <span style="font-size:9px;color:#bbb">${dateLabel}</span>
+      <div style="display:flex;gap:2px">
         <button class="kc-btn" onclick="pinLead('${lead.id}')" title="Pin on map">📍</button>
         <button class="kc-btn" onclick="deleteLead('${lead.id}')" title="Delete">🗑</button>
       </div>
@@ -2131,8 +2127,7 @@ function dropCard(event,colEl){
   event.preventDefault();colEl.classList.remove('drag-over');
   const newStage=colEl.getAttribute('data-stage');
   if(!dragCard||!newStage)return;
-  const id=dragCard.getAttribute('data-id');
-  const lead=leads.find(l=>String(l.id)===String(id));
+  const id=dragCard.getAttribute('data-id');  const lead=leads.find(l=>String(l.id)===String(id));
   if(lead&&lead.stage!==newStage){
     lead.stage=newStage;lead.lastContact=toYMD(new Date());
     saveLead(lead);renderKanban();renderPipelineBar();
@@ -2687,7 +2682,7 @@ function renderPresetsPage(){
   const curScale=getPresetVal('font_size')||'1';
   const curPin=getPresetVal('drop_pin_color')||'#991b1b';
 
-  el.innerHTML=`
+  el.innerHTML=`<div style="max-width:760px;display:flex;flex-direction:column;gap:12px">
   <div class="preset-section">
     <div class="preset-section-hd">🔤 Typography</div>
     <div class="preset-row">
