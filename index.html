@@ -5,32 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spotless Scheduler</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root{
+  --accent:var(--accent);
+  --accent-light:var(--accent-light);
+  --accent-border:var(--accent-border);
+  --accent-dark:var(--accent-dark);
+  --drop-pin:#991b1b;
+  --font-scale:1;
+  --font-family:'Inter',system-ui,sans-serif;
+  --row-pad:8px;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:#f8f7f4;color:#1a1a1a;height:100vh;overflow:hidden;font-size:12px}
+body{font-family:var(--font-family);background:#f8f7f4;color:#1a1a1a;height:100vh;overflow:hidden;font-size:calc(12px * var(--font-scale))}
 .app{display:flex;height:100vh}
 .nav{width:185px;background:#fff;display:flex;flex-direction:column;height:100vh;flex-shrink:0;border-right:0.5px solid #e8e8e4}
 .nav-logo{padding:13px 14px;border-bottom:0.5px solid #e8e8e4;font-size:13px;font-weight:700;color:#1a1a1a;display:flex;align-items:center;gap:6px}
-.nav-logo span{color:#f97316}
+.nav-logo span{color:var(--accent)}
 .nav-links{flex:1;padding:6px 0;overflow-y:auto}
 .nav-section{padding:8px 14px 3px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#c0bdb8}
 .nl{display:flex;align-items:center;gap:8px;padding:5px 8px;margin:1px 6px;font-size:11px;color:#666;cursor:pointer;border-radius:6px;transition:all .1s;user-select:none}
 .nl:hover{background:#f5f4f0;color:#1a1a1a}
-.nl.active{background:#fff4ed;color:#f97316;font-weight:600}
+.nl.active{background:var(--accent-light);color:var(--accent);font-weight:600}
 .nl-icon{font-size:13px;width:16px;text-align:center;flex-shrink:0}
-.nl-new{background:#f97316;color:#fff;font-size:7px;padding:1px 5px;border-radius:8px;margin-left:auto;flex-shrink:0;font-weight:700}
+.nl-new{background:var(--accent);color:#fff;font-size:7px;padding:1px 5px;border-radius:8px;margin-left:auto;flex-shrink:0;font-weight:700}
 .nav-sep{height:0.5px;background:#e8e8e4;margin:5px 12px}
 .nav-bottom{padding:9px 11px;border-top:0.5px solid #e8e8e4;display:flex;flex-direction:column;gap:5px;background:#fff}
 .nav-field-label{font-size:8px;color:#bbb;text-transform:uppercase;letter-spacing:.3px;margin-bottom:1px}
 .nav-inp{width:100%;padding:4px 6px;border-radius:4px;border:0.5px solid #e0e0dc;background:#fafaf8;color:#1a1a1a;font-size:9px;font-family:inherit}
-.nav-inp:focus{outline:none;border-color:#f97316}
+.nav-inp:focus{outline:none;border-color:var(--accent)}
 .g-btn{width:100%;padding:6px;border-radius:6px;border:none;background:#1d9e75;color:#fff;font-size:10px;font-weight:600;cursor:default;margin-top:2px;text-align:center}
 .g-status{font-size:8px;color:#888;margin-top:1px}
 .nav-user{display:flex;align-items:center;gap:6px;padding:8px 11px;border-top:0.5px solid #e8e8e4;background:#fafaf8}
 .nav-user-av{width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0}
 .nav-user-name{font-size:9px;color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-user-out{font-size:8px;color:#aaa;cursor:pointer;padding:2px 6px;border-radius:3px;border:0.5px solid #e0e0dc;background:#fff}
-.nav-user-out:hover{color:#f97316;border-color:#f97316}
+.nav-user-out:hover{color:var(--accent);border-color:var(--accent)}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .page{display:none;flex:1;flex-direction:column;overflow:hidden}
 .page.active{display:flex}
@@ -45,21 +55,21 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f7f4;color:#1a1a1a;h
 .btn{padding:5px 12px;border-radius:6px;border:0.5px solid #e0e0dc;font-size:10px;font-weight:600;cursor:pointer;transition:all .1s;white-space:nowrap;font-family:inherit;background:#fff;color:#555}
 .btn:hover{background:#f5f4f0}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:#f97316;color:#fff;border-color:#f97316}
-.btn-primary:hover{background:#ea6c10}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent-dark)}
 .btn-success{background:#1d9e75;color:#fff;border-color:#1d9e75}
 .btn-ghost{background:#fff;color:#555;border-color:#e0e0dc}
 .btn-ghost:hover{background:#f5f4f0}
 .btn-sm{padding:3px 9px;font-size:9px}
 .btn-warn{background:#fffbeb;color:#92400e;border-color:#fde68a}
 .btn-danger{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
-.btn-orange-outline{background:#fff;color:#f97316;border-color:#f97316}
-.btn-orange-outline:hover{background:#fff4ed}
+.btn-orange-outline{background:#fff;color:var(--accent);border-color:var(--accent)}
+.btn-orange-outline:hover{background:var(--accent-light)}
 .pill{padding:4px 11px;border-radius:20px;font-size:10px;font-weight:500;border:0.5px solid #e0e0dc;color:#555;cursor:pointer;background:#fff;font-family:inherit;white-space:nowrap;transition:all .1s}
 .pill:hover{background:#f5f4f0}
-.pill.active{background:#fff4ed;color:#f97316;border-color:#fed7aa}
-.pill-today{background:#f97316;color:#fff;border-color:#f97316}
-.pill-today:hover{background:#ea6c10}
+.pill.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent-border)}
+.pill-today{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pill-today:hover{background:var(--accent-dark)}
 .appt-list-wrap{flex:1;overflow-y:auto;background:#f8f7f4}
 .day-header{padding:5px 16px;font-size:10px;font-weight:600;color:#888;background:#f0ede8;border-bottom:0.5px solid #e5e2dc;border-top:0.5px solid #e5e2dc;letter-spacing:.2px;text-transform:uppercase}
 .appt-row{display:flex;align-items:center;padding:8px 16px;border-bottom:0.5px solid #f0efeb;background:#fff;gap:0;cursor:pointer;transition:background .1s}
@@ -73,7 +83,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f7f4;color:#1a1a1a;h
 .appt-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0}
 .search-bar{padding:8px 16px;border-bottom:0.5px solid #e8e8e4;background:#fff;flex-shrink:0}
 .search-inp{width:100%;padding:6px 10px;border:0.5px solid #e0e0dc;border-radius:7px;font-size:11px;font-family:inherit;background:#fafaf8;color:#1a1a1a;outline:none}
-.search-inp:focus{border-color:#f97316;background:#fff}
+.search-inp:focus{border-color:var(--accent);background:#fff}
 .split-layout{display:grid;grid-template-columns:300px 1fr;flex:1;overflow:hidden;min-height:0}
 .split-left{overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;border-right:0.5px solid #e8e8e4;background:#fafaf8}
 .map-wrap{position:relative;overflow:hidden;background:#e8ece8;min-height:0;display:flex;flex-direction:column}
@@ -87,11 +97,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f8f7f4;color:#1a1a1a;h
 .card-body{padding:10px 12px}
 .week-nav{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
 .wday{padding:3px 6px;border-radius:5px;border:0.5px solid #e0e0dc;background:#fff;font-size:9px;cursor:pointer;color:#666;font-family:inherit}
-.wday:hover{border-color:#f97316;color:#f97316}
-.wday.sel{background:#f97316;color:#fff;border-color:#f97316}
+.wday:hover{border-color:var(--accent);color:var(--accent)}
+.wday.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
 .date-row{display:flex;gap:5px;align-items:center}
 input[type=date]{padding:5px 8px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit;color:#1a1a1a;background:#fff}
-input[type=date]:focus{outline:none;border-color:#f97316}
+input[type=date]:focus{outline:none;border-color:var(--accent)}
 .gcards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gc{background:#fff;border-radius:8px;border:0.5px solid #e8e8e4;padding:8px;position:relative}
 .gc.off{opacity:.32;border-style:dashed}
@@ -122,22 +132,22 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .qi-rm:hover{color:#e24b4a}
 .pin-bar{background:#fafaf8;border-bottom:0.5px solid #e8e8e4;padding:6px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
 .pin-bar input{flex:1;padding:5px 8px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit;background:#fff}
-.pin-bar input:focus{outline:none;border-color:#f97316}
+.pin-bar input:focus{outline:none;border-color:var(--accent)}
 .pib{padding:3px 9px;border-radius:5px;font-size:9px;cursor:pointer;font-weight:600;border:0.5px solid #e0e0dc;background:#fff;color:#555;white-space:nowrap}
 .pib:hover{background:#f5f4f0}
-.pib.drop{background:#f97316;color:#fff;border-color:#f97316}
-.pib.drop:hover{background:#ea6c10}
-.pin-prompt{background:#fff4ed;border-bottom:0.5px solid #fed7aa;padding:5px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.pin-prompt-addr{font-size:10px;color:#c2410c;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pib.drop{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pib.drop:hover{background:var(--accent-dark)}
+.pin-prompt{background:var(--accent-light);border-bottom:0.5px solid var(--accent-border);padding:5px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pin-prompt-addr{font-size:10px;color:var(--accent-dark);font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pp-btn{padding:3px 9px;border-radius:5px;font-size:9px;cursor:pointer;font-weight:600;border:none}
-.pp-add{background:#f97316;color:#fff}
+.pp-add{background:var(--accent);color:#fff}
 .pp-just{background:#f5f4f0;color:#666}
 .saved-pins{padding:5px 12px;border-bottom:0.5px solid #e8e8e4;display:flex;gap:4px;align-items:center;flex-wrap:wrap;background:#fff;flex-shrink:0}
-.sp{display:flex;align-items:center;gap:3px;background:#fff4ed;border:0.5px solid #fed7aa;border-radius:10px;padding:2px 8px;font-size:9px;color:#c2410c}
+.sp{display:flex;align-items:center;gap:3px;background:var(--accent-light);border:0.5px solid var(--accent-border);border-radius:10px;padding:2px 8px;font-size:9px;color:var(--accent-dark)}
 .sp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .sp-x{cursor:pointer;color:#fdba74;font-size:10px;margin-left:2px}
-.sp-x:hover{color:#ea6c10}
-.clr-all{font-size:9px;color:#f97316;cursor:pointer;margin-left:auto;white-space:nowrap;font-weight:600}
+.sp-x:hover{color:var(--accent-dark)}
+.clr-all{font-size:9px;color:var(--accent);cursor:pointer;margin-left:auto;white-space:nowrap;font-weight:600}
 .status-bar{padding:6px 10px;border-radius:7px;font-size:10px;display:flex;align-items:center;gap:5px;flex-shrink:0}
 .s-ok{background:#f0fdf4;border:0.5px solid #bbf7d0;color:#166534}
 .s-ld{background:#eff6ff;border:0.5px solid #bfdbfe;color:#1e40af}
@@ -164,7 +174,7 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .staff-row:hover{background:#fafaf8}
 .staff-show-all{margin-bottom:2px}
 .staff-show-label{font-size:12px;color:#1a1a1a;font-weight:500}
-.staff-chk{width:16px;height:16px;border-radius:3px;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;flex-shrink:0;border:1.5px solid #f97316;transition:all .12s}
+.staff-chk{width:16px;height:16px;border-radius:3px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;flex-shrink:0;border:1.5px solid var(--accent);transition:all .12s}
 .staff-chk.off{background:#fff;border-color:#e0e0dc;color:transparent}
 .staff-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0;color:#fff}
 .staff-name{flex:1;font-size:11px;color:#1a1a1a;font-weight:500;white-space:nowrap}
@@ -181,7 +191,7 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .wl-hd-btns{display:flex;gap:3px;margin-left:auto;flex-shrink:0}
 .ic-btn{background:none;border:none;font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;color:#ccc}
 .ic-btn:hover{background:#f5f4f0;color:#666}
-.ic-btn.eye{color:#f97316}
+.ic-btn.eye{color:var(--accent)}
 .wl-body{padding:4px 14px 8px 54px}
 .wl-info{font-size:9px;color:#aaa;line-height:1.9}
 .wl-info strong{color:#555;font-weight:500}
@@ -198,7 +208,7 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .wsb-future{background:#eff6ff;color:#1d4ed8}
 .wl-add-form{background:#fff;border-bottom:0.5px solid #e8e8e4;padding:12px 14px}
 .wl-add-title{font-size:11px;font-weight:700;color:#1a1a1a;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.pin-inline-form{background:#fff4ed;border:0.5px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:0}
+.pin-inline-form{background:var(--accent-light);border:0.5px solid var(--accent-border);border-radius:8px;padding:10px;margin-bottom:0}
 .contacts-layout{display:grid;grid-template-columns:320px 1fr;flex:1;overflow:hidden;min-height:0}
 .contacts-left{display:flex;flex-direction:column;border-right:0.5px solid #e8e8e4;overflow:hidden;background:#fff}
 .contacts-list-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
@@ -206,33 +216,33 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .contacts-sort{display:flex;gap:3px}
 .sort-btn{padding:3px 9px;border-radius:12px;border:0.5px solid #e0e0dc;font-size:9px;cursor:pointer;background:#fff;color:#666;font-family:inherit}
 .sort-btn:hover{background:#f5f4f0}
-.sort-btn.active{background:#f97316;color:#fff;border-color:#f97316}
+.sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .paste-box{padding:8px 12px;border-bottom:0.5px solid #e8e8e4;background:#fafaf8;flex-shrink:0}
 .paste-box textarea{width:100%;height:48px;border:0.5px dashed #e0e0dc;border-radius:6px;padding:5px 8px;font-size:9px;color:#666;background:#fff;resize:none;font-family:inherit}
-.paste-box textarea:focus{outline:none;border-color:#f97316}
+.paste-box textarea:focus{outline:none;border-color:var(--accent)}
 .contact-list{flex:1;overflow-y:auto;min-height:0}
 .contact-row{padding:8px 12px;border-bottom:0.5px solid #f5f5f2;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s}
 .contact-row:hover{background:#fffbf8}
-.contact-row.selected{background:#fff4ed}
+.contact-row.selected{background:var(--accent-light)}
 .contact-chk{width:14px;height:14px;border-radius:3px;border:0.5px solid #e0e0dc;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.contact-chk.checked{background:#f97316;border-color:#f97316;color:#fff;font-size:8px}
+.contact-chk.checked{background:var(--accent);border-color:var(--accent);color:#fff;font-size:8px}
 .ct-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
 .ct-name{font-size:11px;font-weight:600;color:#1a1a1a}
 .ct-detail{font-size:9px;color:#aaa;margin-top:1px}
-.ct-tag{font-size:8px;padding:2px 7px;border-radius:10px;background:#fff4ed;color:#f97316;font-weight:600;margin-left:auto;flex-shrink:0}
+.ct-tag{font-size:8px;padding:2px 7px;border-radius:10px;background:var(--accent-light);color:var(--accent);font-weight:600;margin-left:auto;flex-shrink:0}
 .contacts-actions{padding:8px 12px;border-top:0.5px solid #e8e8e4;display:flex;gap:5px;flex-shrink:0;background:#fff}
 .contacts-right{flex:1;overflow-y:auto;padding:16px;background:#f8f7f4}
 .leads-layout{display:flex;flex-direction:column;flex:1;overflow:hidden}
 .pipeline-bar{display:flex;gap:6px;padding:8px 16px;border-bottom:0.5px solid #e8e8e4;background:#fff;flex-shrink:0;overflow-x:auto}
 .pb-pill{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:500;background:#f5f4f0;color:#888;white-space:nowrap;cursor:pointer}
-.pb-pill.active{background:#fff4ed;color:#f97316}
+.pb-pill.active{background:var(--accent-light);color:var(--accent)}
 .kanban-wrap{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;padding:12px;gap:8px;background:#f8f7f4}
 .kb-col{min-width:220px;max-width:240px;background:#f5f4f0;border-radius:10px;display:flex;flex-direction:column;border:0.5px solid #e8e8e4}
 .kb-col-hd{padding:10px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#888;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #e8e4de;flex-shrink:0}
 .kb-col-count{font-size:10px;font-weight:700;color:#1a1a1a;background:#fff;padding:1px 6px;border-radius:8px}
 .kb-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px}
 .kcard{background:#fff;border-radius:7px;border:0.5px solid #e8e8e4;padding:9px 10px;cursor:grab}
-.kcard:hover{border-color:#fed7aa;box-shadow:0 1px 6px rgba(249,115,22,.1)}
+.kcard:hover{border-color:var(--accent-border);box-shadow:0 1px 6px rgba(249,115,22,.1)}
 .kcard-name{font-size:11px;font-weight:600;color:#1a1a1a}
 .kcard-detail{font-size:9px;color:#aaa;margin-top:3px}
 .kcard-tag{font-size:8px;padding:2px 6px;border-radius:8px;display:inline-block;margin-top:5px;font-weight:600}
@@ -240,11 +250,11 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .kc-btn:hover{background:#f5f4f0;color:#666}
 .kb-add{padding:6px 12px;font-size:9px;color:#bbb;cursor:pointer;display:flex;align-items:center;gap:3px;border-top:0.5px solid #e8e4de}
 .kb-add:hover{background:#ede9e4;color:#888}
-.drag-over{background:#fff4ed;border-color:#f97316}
+.drag-over{background:var(--accent-light);border-color:var(--accent)}
 .tpl-phases{padding:7px 14px;border-bottom:0.5px solid #e8e8e4;display:flex;gap:5px;overflow-x:auto;flex-shrink:0;background:#fff}
 .phase-btn{padding:4px 11px;border-radius:12px;font-size:9px;border:0.5px solid #e0e0dc;cursor:pointer;white-space:nowrap;background:#fff;color:#666;font-family:inherit}
 .phase-btn:hover{background:#f5f4f0}
-.phase-btn.active{background:#f97316;color:#fff;border-color:#f97316}
+.phase-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tpl-list{padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;flex:1}
 .tpl-card{background:#fff;border:0.5px solid #e8e8e4;border-radius:9px;padding:10px 13px}
 .tpl-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -252,15 +262,21 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .tpl-actions{display:flex;gap:4px}
 .tpl-btn{padding:3px 9px;border-radius:5px;font-size:9px;cursor:pointer;border:0.5px solid #e0e0dc;background:#fff;color:#555;font-family:inherit}
 .tpl-btn:hover{background:#f5f4f0}
-.tpl-btn.cp{background:#f97316;color:#fff;border-color:#f97316}
+.tpl-btn.cp{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tpl-btn.gv{background:#1d9e75;color:#fff;border-color:#1d9e75}
 .tpl-msg{font-size:10px;color:#555;line-height:1.7;background:#fafaf8;border-radius:5px;padding:8px 10px;border:0.5px solid #e8e8e4}
-.tpl-var{color:#f97316;font-weight:600}
+.tpl-var{color:var(--accent);font-weight:600}
 .tpl-src{font-size:8px;color:#bbb;margin-top:5px;display:flex;align-items:center;gap:3px}
 .tpl-empty{font-size:11px;color:#bbb;text-align:center;padding:30px}
-.tasks-layout{display:flex;flex-direction:column;flex:1;overflow:hidden}
-.tasks-filters{display:flex;gap:5px;padding:8px 16px;border-bottom:0.5px solid #e8e8e4;background:#fff;flex-shrink:0;align-items:center}
-.task-list-panel{overflow-y:auto;flex:1;padding:0}
+.tasks-layout{display:grid;grid-template-columns:270px 1fr;flex:1;overflow:hidden;min-height:0}
+.tasks-form{padding:12px;border-right:0.5px solid #e8e8e4;display:flex;flex-direction:column;gap:7px;overflow-y:auto;background:#fafaf8}
+.tf-title{font-size:11px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
+.tf-field{display:flex;flex-direction:column;gap:2px}
+.tf-label{font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:.3px;font-weight:600}
+.tf-field input,.tf-field textarea,.tf-field select{padding:5px 7px;border:0.5px solid #e0e0dc;border-radius:5px;font-size:10px;font-family:inherit;background:#fff;color:#1a1a1a}
+.tf-field textarea{resize:none;height:56px}
+.tf-field input:focus,.tf-field textarea:focus{outline:none;border-color:var(--accent)}
+.tasks-list-panel{overflow-y:auto;padding:0;display:flex;flex-direction:column}
 .task-item{background:#fff;border-bottom:0.5px solid #f0efeb;padding:10px 16px;display:flex;align-items:center;gap:10px;transition:background .1s}
 .task-item:hover{background:#fffbf8}
 .task-item.overdue{background:#fef2f2}
@@ -281,33 +297,30 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .tsk-x{background:none;border:none;font-size:11px;cursor:pointer;color:#ddd;padding:2px 4px;border-radius:3px}
 .tsk-x:hover{color:#e24b4a;background:#fee2e2}
 .tsk-edit{background:none;border:none;font-size:10px;cursor:pointer;color:#ddd;padding:2px 4px;border-radius:3px}
-.tsk-edit:hover{color:#f97316;background:#fff4ed}
-.task-add-row{padding:10px 16px;border-bottom:0.5px solid #f0efeb;background:#fafaf8;display:flex;gap:6px;align-items:center}
-.task-add-inp{flex:1;padding:6px 10px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit;background:#fff}
-.task-add-inp:focus{outline:none;border-color:#f97316}
+.tsk-edit:hover{color:var(--accent);background:var(--accent-light)}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .fg{display:flex;flex-direction:column;gap:2px}
 .fg.full{grid-column:span 2}
 .fg label{font-size:8px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 .fg select,.fg input[type=text],.fg input[type=date],.fg textarea{padding:4px 7px;border:0.5px solid #e0e0dc;border-radius:5px;font-size:10px;font-family:inherit;background:#fff;width:100%;color:#1a1a1a}
 .fg textarea{resize:none;height:42px}
-.fg select:focus,.fg input:focus,.fg textarea:focus{outline:none;border-color:#f97316}
-.add-q-btn{width:100%;padding:7px;border-radius:6px;border:none;background:#f97316;color:#fff;font-size:10px;font-weight:700;cursor:pointer;margin-top:6px;font-family:inherit}
-.add-q-btn:hover{background:#ea6c10}
-.dog-form{background:#fffbf8;border-radius:8px;padding:10px;border:0.5px solid #fed7aa;margin-bottom:6px}
-.df-title{font-size:10px;font-weight:700;color:#c2410c;margin-bottom:7px}
+.fg select:focus,.fg input:focus,.fg textarea:focus{outline:none;border-color:var(--accent)}
+.add-q-btn{width:100%;padding:7px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:10px;font-weight:700;cursor:pointer;margin-top:6px;font-family:inherit}
+.add-q-btn:hover{background:var(--accent-dark)}
+.dog-form{background:#fffbf8;border-radius:8px;padding:10px;border:0.5px solid var(--accent-border);margin-bottom:6px}
+.df-title{font-size:10px;font-weight:700;color:var(--accent-dark);margin-bottom:7px}
 .srch-row{display:flex;gap:5px;margin-bottom:6px}
 .srch-inp{flex:1;padding:5px 8px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit}
-.srch-inp:focus{outline:none;border-color:#f97316}
-.srch-btn{padding:5px 10px;border-radius:6px;border:none;background:#f97316;color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit}
+.srch-inp:focus{outline:none;border-color:var(--accent)}
+.srch-btn{padding:5px 10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit}
 .results-box{border:0.5px solid #e8e8e4;border-radius:7px;overflow:hidden;max-height:140px;overflow-y:auto;margin-bottom:6px}
 .ri{display:flex;align-items:center;gap:6px;padding:7px 10px;border-bottom:0.5px solid #f5f5f2;cursor:pointer}
 .ri:hover{background:#fffbf8}
-.ri.sel{background:#fff4ed}
-.ri-av{width:22px;height:22px;border-radius:50%;background:#fff4ed;color:#c2410c;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;flex-shrink:0}
+.ri.sel{background:var(--accent-light)}
+.ri-av{width:22px;height:22px;border-radius:50%;background:var(--accent-light);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;flex-shrink:0}
 .ri-name{font-weight:600;color:#1a1a1a;font-size:10px}
 .ri-addr{font-size:8px;color:#aaa;margin-top:1px}
-.ri-tag{margin-left:auto;font-size:8px;color:#f97316;font-weight:600}
+.ri-tag{margin-left:auto;font-size:8px;color:var(--accent);font-weight:600}
 .rules-layout{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .rule-section{background:#fff;border-radius:9px;border:0.5px solid #e8e8e4;overflow:hidden}
 .rs-hd{padding:10px 14px;border-bottom:0.5px solid #f0f0ec;display:flex;align-items:center;gap:7px}
@@ -321,9 +334,9 @@ input[type=date]:focus{outline:none;border-color:#f97316}
 .rule-desc{font-size:8px;color:#aaa;margin-top:2px;line-height:1.5}
 .rule-ctrl{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .rval{font-size:9px;font-weight:600;color:#1a1a1a;min-width:48px;text-align:right}
-input[type=range]{width:72px;accent-color:#f97316}
+input[type=range]{width:72px;accent-color:var(--accent)}
 .rtog{width:26px;height:14px;border-radius:7px;cursor:pointer;display:flex;align-items:center;padding:2px;flex-shrink:0;transition:background .15s}
-.rtog.on{background:#f97316;justify-content:flex-end}
+.rtog.on{background:var(--accent);justify-content:flex-end}
 .rtog.off{background:#e0e0dc;justify-content:flex-start}
 .rtknob{width:10px;height:10px;border-radius:50%;background:#fff}
 .fbadge{padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700}
@@ -350,7 +363,7 @@ input[type=range]{width:72px;accent-color:#f97316}
 .access-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fafaf8;border-radius:7px;border:0.5px solid #e8e8e4;font-size:11px}
 .access-email{flex:1;color:#1a1a1a;font-weight:500}
 .access-meta{font-size:9px;color:#bbb}
-.access-owner{font-size:8px;background:#fff4ed;color:#f97316;padding:2px 7px;border-radius:10px;font-weight:600}
+.access-owner{font-size:8px;background:var(--accent-light);color:var(--accent);padding:2px 7px;border-radius:10px;font-weight:600}
 .login-screen{position:fixed;inset:0;background:#f8f7f4;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column}
 .login-card{background:#fff;border-radius:16px;padding:40px 44px 36px;text-align:center;width:360px;border:0.5px solid #e8e8e4;box-shadow:0 4px 32px rgba(0,0,0,.07)}
 .login-logo{font-size:40px;margin-bottom:10px}
@@ -358,6 +371,31 @@ input[type=range]{width:72px;accent-color:#f97316}
 .login-sub{font-size:12px;color:#aaa;margin-bottom:32px;line-height:1.5}
 .login-err{font-size:11px;color:#b91c1c;margin-top:12px;min-height:16px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;font-weight:500;z-index:9999;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+/* ── PRESETS TAB ── */
+.presets-layout{flex:1;overflow-y:auto;padding:16px;background:#f8f7f4;display:flex;flex-direction:column;gap:12px}
+.preset-section{background:#fff;border-radius:10px;border:0.5px solid #e8e8e4;overflow:hidden}
+.preset-section-hd{padding:10px 14px;border-bottom:0.5px solid #f0f0ec;font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.preset-row{display:flex;align-items:center;padding:10px 14px;border-bottom:0.5px solid #f8f8f6;gap:10px}
+.preset-row:last-child{border-bottom:none}
+.preset-lbl{flex:1}
+.preset-lbl-title{font-size:11px;font-weight:500;color:#1a1a1a}
+.preset-lbl-sub{font-size:9px;color:#aaa;margin-top:1px}
+.preset-ctrl{flex-shrink:0;display:flex;align-items:center;gap:6px}
+.preset-save-me{font-size:9px;color:var(--accent);cursor:pointer;padding:2px 7px;border-radius:4px;border:0.5px solid var(--accent-border);background:var(--accent-light)}
+.preset-save-me:hover{background:var(--accent-border)}
+.preset-save-all{font-size:9px;color:#fff;cursor:pointer;padding:2px 7px;border-radius:4px;border:none;background:var(--accent)}
+.preset-save-all:hover{background:var(--accent-dark)}
+.preset-owner-only{font-size:9px;color:#bbb;padding:2px 6px}
+.color-swatch{width:22px;height:22px;border-radius:4px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:all .1s}
+.color-swatch.selected{border-color:#1a1a1a;transform:scale(1.15)}
+.density-btn{padding:4px 10px;border-radius:5px;font-size:10px;border:0.5px solid #e0e0dc;cursor:pointer;background:#fff;color:#666;font-family:inherit}
+.density-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.weights-table{width:100%;border-collapse:collapse}
+.weights-table th{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.3px;padding:6px 10px;text-align:left;border-bottom:0.5px solid #f0f0ec}
+.weights-table td{padding:6px 10px;font-size:10px;border-bottom:0.5px solid #f8f8f6}
+.weights-table tr:last-child td{border-bottom:none}
+.weights-table input{width:60px;padding:3px 6px;border:0.5px solid #e0e0dc;border-radius:4px;font-size:10px;font-family:inherit;text-align:center}
+.weights-table input:focus{outline:none;border-color:var(--accent)}
 #contact-import-preview{flex-shrink:0}
 </style>
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -405,6 +443,7 @@ input[type=range]{width:72px;accent-color:#f97316}
     <div class="nl" id="nl-tasks" onclick="showPage('tasks')"><span class="nl-icon">✅</span>Tasks</div>
     <div class="nl" id="nl-rules" onclick="showPage('rules')"><span class="nl-icon">⚙️</span>Rules</div>
     <div class="nl" id="nl-groomers" onclick="showPage('groomers')"><span class="nl-icon">✂️</span>Groomers</div>
+    <div class="nl" id="nl-presets" onclick="showPage('presets')"><span class="nl-icon">🎨</span>Presets</div>
     <div class="nl" id="nl-access" onclick="showPage('access')"><span class="nl-icon">🔐</span>Access</div>
   </div>
   <div class="nav-bottom">
@@ -653,24 +692,21 @@ input[type=range]{width:72px;accent-color:#f97316}
 <div class="page" id="page-tasks">
   <div class="topbar">
     <div style="flex:1"><div class="page-title">Tasks</div><div class="page-sub">Team task list · saves to Google Sheets</div></div>
+    <input id="tasks-filter" placeholder="Filter by owner…" style="padding:5px 9px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit;background:#fafaf8;outline:none;width:140px" oninput="renderTasks()">
     <button class="pill" onclick="loadTasks()">↻ Refresh</button>
-    <button class="btn btn-primary btn-sm" id="add-task-btn">+ Add task</button>
   </div>
-  <div class="tasks-filters" id="tasks-filters">
-    <button class="pill active" id="tf-all" onclick="setTaskFilter('all')">All</button>
-    <button class="pill" id="tf-open" onclick="setTaskFilter('open')">Open</button>
-    <button class="pill" id="tf-done" onclick="setTaskFilter('done')">Done</button>
-    <input id="tasks-filter" placeholder="Filter by owner…" style="padding:4px 9px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit;margin-left:auto;background:#fafaf8;outline:none;width:140px">
-  </div>
-  <div class="task-add-row" id="task-add-row" style="display:none">
-    <input class="task-add-inp" id="tf-name" placeholder="Task name…">
-    <input class="task-add-inp" id="tf-owner" placeholder="Owner…" list="owner-list" style="width:110px;flex:none"><datalist id="owner-list"></datalist>
-    <input type="date" id="tf-due" style="padding:5px 7px;border:0.5px solid #e0e0dc;border-radius:6px;font-size:10px;font-family:inherit">
-    <button class="btn btn-primary btn-sm" id="tf-save">Save</button>
-    <button class="btn btn-ghost btn-sm" id="tf-cancel">×</button>
-  </div>
-  <div class="task-list-panel" id="tasks-list">
-    <div style="padding:20px;text-align:center;font-size:11px;color:#aaa">Loading tasks…</div>
+  <div class="tasks-layout">
+    <div class="tasks-form">
+      <div class="tf-title">New task</div>
+      <div class="tf-field"><div class="tf-label">Task name</div><input id="tf-name" placeholder="e.g. Follow up with customer"></div>
+      <div class="tf-field"><div class="tf-label">Owner</div><input id="tf-owner" placeholder="Type any name…" list="owner-list"><datalist id="owner-list"></datalist></div>
+      <div class="tf-field"><div class="tf-label">Notes</div><textarea id="tf-notes" placeholder="Details, context, links…"></textarea></div>
+      <div class="tf-field"><div class="tf-label">Due date</div><input type="date" id="tf-due"></div>
+      <button class="btn btn-primary" style="width:100%;padding:7px;font-family:inherit" id="tf-save">Save task → Sheets</button>
+    </div>
+    <div class="tasks-list-panel" id="tasks-list">
+      <div style="padding:20px;text-align:center;font-size:11px;color:#aaa">Loading tasks…</div>
+    </div>
   </div>
 </div>
 
@@ -696,7 +732,17 @@ input[type=range]{width:72px;accent-color:#f97316}
 </div>
 
 </div><!-- end main -->
-<!-- ACCESS PAGE -->
+<!-- PRESETS PAGE -->
+<div class="page" id="page-presets">
+  <div class="topbar">
+    <div style="flex:1"><div class="page-title">Presets</div><div class="page-sub">Visual & scheduling preferences — sheet defaults + personal overrides</div></div>
+    <button class="pill" onclick="loadPresets()">↻ Refresh</button>
+    <button class="btn btn-ghost btn-sm" onclick="resetPresetsToDefaults()">Reset defaults</button>
+  </div>
+  <div class="presets-layout" id="presets-layout">
+    <div style="padding:20px;text-align:center;font-size:11px;color:#aaa">Loading…</div>
+  </div>
+</div>
 <div class="page" id="page-access">
   <div class="topbar">
     <div style="flex:1"><div class="page-title">Access Control</div><div class="page-sub">Manage who can sign in to Spotless Scheduler</div></div>
@@ -722,12 +768,29 @@ input[type=range]{width:72px;accent-color:#f97316}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbzwc-13kGcaRtipZB0-jVygdrX92gZn3KfN74M168J7zfIn1D-28JGNfIcQUvY4xw0/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwRJqfRGb9qbMoK7_7G-8HT9PU9B-ghRlY4l0V6utFxSMhCs1yQJxyoo_VBbig1RKbb/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
-const SIZE_SLOTS  = {xs:1,sm:1,md:1,lg:1,xl:1,sdoodle:1.5,mdoodle:1.5,ldoodle:2,cat:1.5};
-const HEAVY_SIZES = ['lg','xl','sdoodle','mdoodle','ldoodle'];
+// WEIGHTS loaded dynamically from Sheets via loadWeights() — fallback below
+const SIZE_SLOTS_DEFAULT = {xs:1,sm:1,md:1.5,lg:2,xl:3,sdoodle:3,mdoodle:3,ldoodle:3,cat:1};
+let WEIGHTS = {}; // key→{label,slots} loaded from Sheets
+
+function getSlotWeight(size, title) {
+  // 1. Check breed keywords from WEIGHTS sheet (doodle, poodle, bernese, etc.)
+  if (title && Object.keys(WEIGHTS).length) {
+    const tl = title.toLowerCase();
+    // Sort by key length descending so 'ldoodle' matches before 'doodle'
+    const breedKeys = Object.keys(WEIGHTS).filter(k=>!['xs','sm','md','lg','xl','cat'].includes(k));
+    for (const k of breedKeys.sort((a,b)=>b.length-a.length)) {
+      if (tl.includes(k)) return WEIGHTS[k].slots;
+    }
+  }
+  // 2. Check size key in WEIGHTS
+  if (WEIGHTS[size]) return WEIGHTS[size].slots;
+  // 3. Fall back to built-in defaults
+  return SIZE_SLOTS_DEFAULT[size] || 1;
+}
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -1041,6 +1104,7 @@ function showPage(id){
   if(id==='rules')    loadRules();
   if(id==='groomers') renderGroomerConfig();
   if(id==='access')   loadAccess();
+  if(id==='presets')  {loadPresets();renderPresetsPage();}
 }
 
 // ── SCHEDULE ──────────────────────────────────────────────────
@@ -1108,9 +1172,10 @@ function processCalendar(events,date){
       calendarData.UNASSIGNED.appts.push(appt);
       queue.push({name:appt.customer,detail:`${appt.time}·${appt.dogs}dog·${SIZE_LABELS[size]||size}`,type:'unassigned',address:appt.address,lat:null,lng:null,mapVisible:true});
     }else if(calendarData[gr]){
+      const slotW=getSlotWeight(size,t);
       calendarData[gr].appts.push(appt);
-      calendarData[gr].dogs+=dogs;calendarData[gr].usedSlots+=SIZE_SLOTS[size]||1;
-      if(isHeavy(size))calendarData[gr].heavy+=dogs;
+      calendarData[gr].dogs+=dogs;
+      calendarData[gr].usedSlots+=slotW*dogs;
       calendarData[gr].worksToday=true;
     }
   });
@@ -1173,11 +1238,21 @@ function renderGroomerCards(cd){
   const el=document.getElementById('gcards');
   if(!GROOMERS.length){el.innerHTML='<div style="font-size:9px;color:#aaa;padding:8px;text-align:center">Load groomers first</div>';return;}
   el.innerHTML=GROOMERS.map(g=>{
-    const gd=cd[g.id]||{worksToday:false,appts:[],dogs:0,heavy:0,usedSlots:0};
+    const gd=cd[g.id]||{worksToday:false,appts:[],dogs:0,usedSlots:0};
     const cap=groomerOverrides[g.id]?.cap||g.max||8;
-    const pct=gd.dogs?Math.round(gd.heavy/gd.dogs*100):0;
+    const usedRounded=Math.round(gd.usedSlots*10)/10;
+    const overCap=gd.usedSlots>cap;
     const isOn=groomerState[g.id]!==false&&gd.worksToday;
     const ini=g.id;
+    const filledSq=Math.min(Math.round(gd.usedSlots),cap);
+    const overSq=Math.max(0,Math.round(gd.usedSlots)-cap);
+    const emptySq=Math.max(0,cap-filledSq);
+    const squares=[
+      ...Array(filledSq).fill(`<div class="sl sl-u"></div>`),
+      ...Array(overSq).fill(`<div class="sl sl-x"></div>`),
+      ...Array(emptySq).fill(`<div class="sl sl-o"></div>`)
+    ].join('');
+    const slotLabel=`${gd.dogs} dog${gd.dogs!==1?'s':''} · ${usedRounded}/${cap} slots${overCap?' ⚠':''}`;
     return `<div class="gc${isOn?'':' off'}" id="gc-${g.id}">
       <div class="gc-top">
         <div class="av" style="background:${g.color};color:${g.fg||'#fff'}">${ini}</div>
@@ -1187,10 +1262,8 @@ function renderGroomerCards(cd){
         </div>
         <div class="tog ${isOn?'on':'off'}" style="${isOn?'background:'+g.color:''}" data-action="toggle-groomer" data-id="${g.id}"><div class="tknob"></div></div>
       </div>
-      <div style="font-size:8px;color:#888;margin-bottom:3px">${gd.dogs}/${cap} dogs · ${pct}% heavy</div>
-      <div class="slots-row" style="color:${g.color}">
-        ${Array.from({length:cap},(_, i)=>`<div class="sl ${i<gd.usedSlots?'sl-u':'sl-o'}"></div>`).join('')}
-      </div>
+      <div style="font-size:8px;color:${overCap?'#b91c1c':'#888'};margin-bottom:3px">${slotLabel}</div>
+      <div class="slots-row" style="color:${g.color}">${squares}</div>
       ${gd.appts.length?`<div class="gc-appts">${gd.appts.map(a=>`<div class="ga"><span class="ga-t">${a.time}</span><span class="ga-n">${a.customer}</span></div>`).join('')}</div>`:''}
     </div>`;
   }).join('');
@@ -1528,7 +1601,7 @@ function setupPinBar(prefix,_unused,pinsArr,extraAction){
       showPage(prefix==='wl'?'waitlist':prefix==='ct'?'contacts':'schedule');
     }
     if(prompt){document.getElementById(prefix+'-pin-addr').textContent=v;prompt.style.display='flex';}
-    addSavedPin(prefix,v,'#7FCCCC',pinsArr,pinsRow);
+    addSavedPin(prefix,v,window._dropPinColor||'#991b1b',pinsArr,pinsRow);
     inp.value='';
   });
   if(clear)clear.addEventListener('click',()=>clearPins(prefix,pinsArr,pinsRow));
@@ -1567,7 +1640,7 @@ function addSavedPin(prefix,addr,color,pinsArr,pinsRow){
       geoCode(addr,(lat,lng)=>{
         const m=new google.maps.Marker({
           position:{lat,lng},map:m2,
-          icon:{url:makeSVGPin('#7FCCCC','●',28),scaledSize:new google.maps.Size(28,28),anchor:new google.maps.Point(14,14)},
+          icon:{url:makeSVGPin(window._dropPinColor||'#991b1b','●',28),scaledSize:new google.maps.Size(28,28),anchor:new google.maps.Point(14,14)},
           title:addr,zIndex:5
         });
         m._gid='pin';m._name=addr;
@@ -1659,7 +1732,7 @@ function addToQueueAndWaitlist(){
   const today=toYMD(new Date());
   const week=toYMD(new Date(Date.now()+7*864e5));
   const wlEntry={id:Date.now(),name:selectedContact.name,phone:selectedContact.phone||'',email:selectedContact.email||'',
-    address:selectedContact.address||'',dog,breed,size,slotComplexity:SIZE_SLOTS[size]||1,svc,
+    address:selectedContact.address||'',dog,breed,size,slotComplexity:getSlotWeight(size,''),svc,
     timePref:tp,dateFrom:today,dateTo:week,prefGroomer:gr,status:'active',notes,addedDate:today,lat:null,lng:null};
   waitlist.push(wlEntry);
   // Geocode immediately and save lat/lng back
@@ -2234,11 +2307,14 @@ function renderTasks(){
 async function saveTask(){
   const name=document.getElementById('tf-name')?.value?.trim();
   if(!name){toast('Task name required');return;}
-  const task={id:Date.now(),name,owner:document.getElementById('tf-owner')?.value?.trim()||'',notes:'',due:document.getElementById('tf-due')?.value||'',done:false,created:toYMD(new Date())};
+  const task={id:Date.now(),name,owner:document.getElementById('tf-owner')?.value?.trim()||'',notes:document.getElementById('tf-notes')?.value?.trim()||'',due:document.getElementById('tf-due')?.value||'',done:false,created:toYMD(new Date())};
   tasks.push(task);
   const row=[task.id,task.name,task.owner,task.notes,task.due,'false',task.created];
   try{await apiPost('saveTask',{row});}catch(e){console.warn('Save task failed:',e.message);}
-  hideTaskAddRow();
+  document.getElementById('tf-name').value='';
+  document.getElementById('tf-owner').value='';
+  if(document.getElementById('tf-notes'))document.getElementById('tf-notes').value='';
+  document.getElementById('tf-due').value='';
   renderTasks();updateOwnerSuggestions();toast('✓ Task saved');
 }
 async function toggleTask(id){
@@ -2537,13 +2613,235 @@ function hideTaskAddRow(){
   const n=document.getElementById('tf-name');const o=document.getElementById('tf-owner');const d=document.getElementById('tf-due');
   if(n)n.value='';if(o)o.value='';if(d)d.value='';
 }
+// ── WEIGHTS ───────────────────────────────────────────────────
+let _weightsCache = null;
+async function loadWeights(){
+  try{
+    const res=await apiGet('getWeights');
+    if(res.ok){WEIGHTS=res.weights||{};_weightsCache=res.weights;}
+  }catch(e){console.warn('Weights load failed:',e.message);}
+}
+
+// ── PRESETS ───────────────────────────────────────────────────
+const PRESET_DEFAULTS={
+  drop_pin_color:'#991b1b',
+  accent_color:'var(--accent-default,#f97316)',
+  font_size:'1',
+  font_family:'Inter',
+  row_density:'comfortable'
+};
+let _sheetPresets={};
+let _localPresets={};
+
+function loadLocalPresets(){
+  try{const s=localStorage.getItem('spotless_presets');if(s)_localPresets=JSON.parse(s);}catch(e){}
+}
+function saveLocalPreset(key,val){
+  _localPresets[key]=val;
+  localStorage.setItem('spotless_presets',JSON.stringify(_localPresets));
+}
+function getPresetVal(key){
+  return _localPresets[key]??_sheetPresets[key]?.value??PRESET_DEFAULTS[key]??'';
+}
+
+async function loadPresets(){
+  loadLocalPresets();
+  try{
+    const res=await apiGet('getPresets');
+    if(res.ok)_sheetPresets=res.presets||{};
+  }catch(e){console.warn('Presets load failed:',e.message);}
+  applyPresets();
+  if(document.getElementById('page-presets')?.classList.contains('active'))renderPresetsPage();
+}
+
+function applyPresets(){
+  const root=document.documentElement;
+  // Font scale
+  const fs=parseFloat(getPresetVal('font_size'))||1;
+  root.style.setProperty('--font-scale',fs);
+  // Font family
+  const ff=getPresetVal('font_family')||'Inter';
+  const ffMap={'Inter':"'Inter',system-ui,sans-serif",'DM Sans':"'DM Sans',system-ui,sans-serif",'System':"system-ui,sans-serif"};
+  root.style.setProperty('--font-family',ffMap[ff]||ffMap['Inter']);
+  // Accent color
+  const ac=getPresetVal('accent_color');
+  if(ac&&ac.startsWith('#')){
+    root.style.setProperty('--accent',ac);
+    root.style.setProperty('--accent-dark',ac);
+  }
+  // Drop pin color
+  window._dropPinColor=getPresetVal('drop_pin_color')||'#991b1b';
+  // Row density
+  const density=getPresetVal('row_density')||'comfortable';
+  const padMap={compact:'4px',comfortable:'8px',spacious:'13px'};
+  root.style.setProperty('--row-pad',padMap[density]||'8px');
+}
+
+function renderPresetsPage(){
+  const el=document.getElementById('presets-layout');if(!el)return;
+  const isOwner=!!window._ownerEmail;
+  const accentSwatches=['#f97316','#2563eb','#1d9e75','#7c3aed','#db2777','#dc2626','#0891b2','#92400e'];
+  const curAccent=getPresetVal('accent_color')||'#f97316';
+  const curFont=getPresetVal('font_family')||'Inter';
+  const curDensity=getPresetVal('row_density')||'comfortable';
+  const curScale=getPresetVal('font_size')||'1';
+  const curPin=getPresetVal('drop_pin_color')||'#991b1b';
+
+  el.innerHTML=`
+  <div class="preset-section">
+    <div class="preset-section-hd">🔤 Typography</div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Font size</div><div class="preset-lbl-sub">Scales the entire interface</div></div>
+      <div class="preset-ctrl">
+        <span style="font-size:9px;color:#aaa">A</span>
+        <input type="range" min="0.8" max="1.4" step="0.05" value="${curScale}" id="ps-font-size" style="width:100px" oninput="document.getElementById('ps-font-size-val').textContent=Math.round(this.value*100)+'%';document.documentElement.style.setProperty('--font-scale',this.value)">
+        <span style="font-size:9px;font-weight:600;color:#1a1a1a;min-width:32px" id="ps-font-size-val">${Math.round(parseFloat(curScale)*100)}%</span>
+        <button class="preset-save-me" onclick="savePresetForMe('font_size',document.getElementById('ps-font-size').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('font_size',document.getElementById('ps-font-size').value)">Save for all</button>`:`<span class="preset-owner-only">🔒 Owner only</span>`}
+      </div>
+    </div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Font family</div></div>
+      <div class="preset-ctrl" style="gap:5px">
+        ${['Inter','DM Sans','System'].map(f=>`<button class="density-btn${curFont===f?' active':''}" onclick="applyFontFamily('${f}')">${f}</button>`).join('')}
+        <button class="preset-save-me" onclick="savePresetForMe('font_family',document.getElementById('ps-font-family-val').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('font_family',document.getElementById('ps-font-family-val').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+        <input type="hidden" id="ps-font-family-val" value="${curFont}">
+      </div>
+    </div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Row density</div><div class="preset-lbl-sub">Spacing in lists and tables</div></div>
+      <div class="preset-ctrl" style="gap:5px">
+        ${['compact','comfortable','spacious'].map(d=>`<button class="density-btn${curDensity===d?' active':''}" onclick="applyDensity('${d}')">${d[0].toUpperCase()+d.slice(1)}</button>`).join('')}
+        <button class="preset-save-me" onclick="savePresetForMe('row_density',document.getElementById('ps-density-val').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('row_density',document.getElementById('ps-density-val').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+        <input type="hidden" id="ps-density-val" value="${curDensity}">
+      </div>
+    </div>
+  </div>
+
+  <div class="preset-section">
+    <div class="preset-section-hd">🎨 Colors</div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Accent color</div><div class="preset-lbl-sub">Buttons, active states, highlights</div></div>
+      <div class="preset-ctrl" style="flex-wrap:wrap;gap:5px">
+        ${accentSwatches.map(c=>`<div class="color-swatch${curAccent===c?' selected':''}" style="background:${c}" onclick="applyAccent('${c}')" title="${c}"></div>`).join('')}
+        <input type="color" id="ps-accent-custom" value="${curAccent.startsWith('#')?curAccent:'#f97316'}" style="width:22px;height:22px;border-radius:4px;border:0.5px solid #e0e0dc;padding:1px;cursor:pointer" oninput="applyAccent(this.value)">
+        <button class="preset-save-me" onclick="savePresetForMe('accent_color',document.getElementById('ps-accent-custom').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('accent_color',document.getElementById('ps-accent-custom').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+      </div>
+    </div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Drop pin color</div><div class="preset-lbl-sub">Color of manually dropped address pins on map</div></div>
+      <div class="preset-ctrl">
+        <input type="color" id="ps-pin-color" value="${curPin}" style="width:32px;height:32px;border-radius:6px;border:0.5px solid #e0e0dc;padding:2px;cursor:pointer" oninput="window._dropPinColor=this.value">
+        <span style="font-size:10px;color:#888" id="ps-pin-color-val">${curPin}</span>
+        <button class="preset-save-me" onclick="savePresetForMe('drop_pin_color',document.getElementById('ps-pin-color').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('drop_pin_color',document.getElementById('ps-pin-color').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+      </div>
+    </div>
+  </div>
+
+  <div class="preset-section">
+    <div class="preset-section-hd">⚖️ Slot weights <span style="font-size:9px;color:#aaa;text-transform:none;letter-spacing:0;font-weight:400;margin-left:4px">from Weights sheet · edit here or directly in Sheets</span></div>
+    <div style="padding:8px 14px" id="weights-editor">
+      <div style="font-size:10px;color:#aaa;text-align:center;padding:12px">Loading weights…</div>
+    </div>
+  </div>`;
+
+  renderWeightsEditor();
+}
+
+function renderWeightsEditor(){
+  const el=document.getElementById('weights-editor');if(!el)return;
+  const isOwner=!!window._ownerEmail;
+  if(!Object.keys(WEIGHTS).length){
+    el.innerHTML='<div style="font-size:10px;color:#aaa;text-align:center;padding:12px">No weights loaded — load groomers first or check Weights sheet</div>';
+    return;
+  }
+  el.innerHTML=`<table class="weights-table">
+    <thead><tr><th>Key</th><th>Label</th><th>Slots</th></tr></thead>
+    <tbody>
+      ${Object.entries(WEIGHTS).map(([k,w])=>`<tr>
+        <td style="color:#aaa;font-size:9px">${k}</td>
+        <td>${w.label}</td>
+        <td><input type="number" step="0.5" min="0.5" max="5" value="${w.slots}" id="wt-${k}" style="width:60px"></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  ${isOwner?`<div style="margin-top:10px;display:flex;gap:6px">
+    <button class="btn btn-primary btn-sm" onclick="saveWeightsToSheet()">Save weights → Sheets</button>
+    <span style="font-size:9px;color:#aaa;align-self:center">Changes apply immediately for everyone</span>
+  </div>`:`<div style="font-size:9px;color:#aaa;margin-top:8px">🔒 Only the owner can save weight changes to Sheets</div>`}`;
+}
+
+async function saveWeightsToSheet(){
+  const rows=Object.entries(WEIGHTS).map(([k,w])=>{
+    const inp=document.getElementById('wt-'+k);
+    const slots=inp?parseFloat(inp.value)||w.slots:w.slots;
+    WEIGHTS[k]={...w,slots};
+    return[k,w.label,slots];
+  });
+  // Save via Presets mechanism - weights go to Weights sheet directly
+  try{
+    await apiPost('saveWeights',{rows});
+    toast('✓ Weights saved to Sheets');
+  }catch(e){toast('Error saving weights');}
+}
+
+function applyFontFamily(ff){
+  document.querySelectorAll('.density-btn').forEach(b=>{if(b.textContent===ff)b.classList.add('active');else if(['Inter','DM Sans','System'].includes(b.textContent))b.classList.remove('active');});
+  const el=document.getElementById('ps-font-family-val');if(el)el.value=ff;
+  const ffMap={'Inter':"'Inter',system-ui,sans-serif",'DM Sans':"'DM Sans',system-ui,sans-serif",'System':"system-ui,sans-serif"};
+  document.documentElement.style.setProperty('--font-family',ffMap[ff]||ffMap['Inter']);
+}
+function applyDensity(d){
+  document.querySelectorAll('.density-btn').forEach(b=>{if(['Compact','Comfortable','Spacious'].includes(b.textContent))b.classList.toggle('active',b.textContent.toLowerCase()===d);});
+  const el=document.getElementById('ps-density-val');if(el)el.value=d;
+  const padMap={compact:'4px',comfortable:'8px',spacious:'13px'};
+  document.documentElement.style.setProperty('--row-pad',padMap[d]||'8px');
+}
+function applyAccent(color){
+  document.documentElement.style.setProperty('--accent',color);
+  document.documentElement.style.setProperty('--accent-dark',color);
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected',s.style.background===color));
+  const inp=document.getElementById('ps-accent-custom');if(inp&&color.startsWith('#'))inp.value=color;
+  const pinVal=document.getElementById('ps-pin-color-val');if(pinVal&&color===window._dropPinColor)pinVal.textContent=color;
+}
+function savePresetForMe(key,val){
+  saveLocalPreset(key,val);
+  applyPresets();
+  toast(`✓ "${key}" saved for you`);
+}
+async function savePresetForAll(key,val){
+  if(!window._ownerEmail){toast('Owner only');return;}
+  _sheetPresets[key]={..._sheetPresets[key],value:val};
+  const rows=Object.entries(_sheetPresets).map(([k,p])=>[k,p.label||k,p.value||'']);
+  try{
+    await apiPost('savePresets',{rows});
+    applyPresets();
+    toast(`✓ "${key}" saved for everyone`);
+  }catch(e){toast('Error saving preset');}
+}
+function resetPresetsToDefaults(){
+  localStorage.removeItem('spotless_presets');
+  _localPresets={};
+  applyPresets();
+  if(document.getElementById('page-presets')?.classList.contains('active'))renderPresetsPage();
+  toast('✓ Personal presets reset');
+}
+
 function bootApp(){
+  loadLocalPresets();
+  applyPresets();
   loadPersistedKeys();
   const today=new Date();
   document.getElementById('date-inp').value=toYMD(today);
   buildWeekNav(today);
   loadGroomers();
   loadWaitlistFromSheets();
+  loadWeights();
+  loadPresets();
 }
 document.addEventListener('DOMContentLoaded',()=>{
   bindAllHandlers();
