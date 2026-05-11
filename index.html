@@ -765,7 +765,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbxBfh0tMaihIvi69BP3qDJ7ZBZxKtj4zBiq3iAjeq7atD4_ymoBLXcNKgt6O9kDsjup/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwmjYF0GWrsBUCrgOPjMV4G57xSt6sSUiMbSBgE1BrasfNWh-pvngUSfTNsGHJU2owD/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
@@ -902,7 +902,12 @@ function apiGet(action,params={}){
     const url=new URL(API_URL);
     url.searchParams.set('action',action);
     url.searchParams.set('callback',cb);
-    if(action!=='ping'&&_idToken)url.searchParams.set('token',_idToken);
+    // Send only header.payload portion of JWT — server decodes email from payload
+    // Full signature omitted to keep URL short (tokens are ~1000 chars)
+    if(action!=='ping'&&_idToken){
+      const parts=_idToken.split('.');
+      url.searchParams.set('token',parts[0]+'.'+parts[1]+'.sig');
+    }
     Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
     const s=document.createElement('script');
     const t=setTimeout(()=>{cleanup();reject(new Error('Timeout: '+action));},20000);
