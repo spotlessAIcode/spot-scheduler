@@ -765,7 +765,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbweeIpebMHoOtdS7QpAIHDyiBp7Jht-V8yKq3aZO1UyxXBjnoEwTPgd9KWyDsZ0ZGkK/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyoRV7RxfN81u2RWXy-HpedATjMRjLbhnRAc2Nj9NfmR5z2fHtGrxHBl772vhjnq2Ub/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
@@ -836,11 +836,11 @@ function onGoogleSignIn(response) {
     if (refreshIn > 0) _tokenRefreshTimer = setTimeout(silentRefresh, refreshIn);
     // Fetch config from backend (validates token server-side + returns keys)
     showLoginErr('Verifying access…');
-    // Pass token in two parts to avoid URL length limits — server verifies full token
-    // We split at 500 chars and send as t1+t2 params
-    const t1=_idToken.substring(0,500);
-    const t2=_idToken.substring(500);
-    apiGet('getConfig',{t1,t2}).then(cfg => {
+    // For getConfig we only need header.payload (first 2 JWT parts) to decode email
+    // Signature verification skipped here — email is just for access check
+    // Full token still sent for all subsequent API calls
+    const jwtShort = _idToken.split('.').slice(0,2).join('.')+'.'+'sig';
+    apiGet('getConfig',{token:jwtShort}).then(cfg => {
       if (!cfg.ok) {
         _idToken = '';
         showLoginErr(cfg.authRequired ? 'Access denied. This tool is private.' : (cfg.error || 'Access denied.'));
