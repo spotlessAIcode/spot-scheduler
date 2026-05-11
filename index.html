@@ -765,7 +765,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbzsEUns5F0f9BjFHoZ5uej-DE1LCEBh6-bhJZ1mCfdtlD8N4pbJzOJbMiY6309Jviq6/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxW5uAusdappdG5Ij4jAnR4O_KZ-0k2l12bUuYc7OJ3AIGEevC94Cg_SAn8mbHDGImC/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
@@ -836,7 +836,8 @@ function onGoogleSignIn(response) {
     if (refreshIn > 0) _tokenRefreshTimer = setTimeout(silentRefresh, refreshIn);
     // Fetch config from backend (validates token server-side + returns keys)
     showLoginErr('Verifying access…');
-    apiGet('getConfig').then(cfg => {
+    // Use POST for getConfig so the long token doesn't exceed URL limits
+    apiPost('getConfig',{}).then(cfg => {
       if (!cfg.ok) {
         _idToken = '';
         showLoginErr(cfg.authRequired ? 'Access denied. This tool is private.' : (cfg.error || 'Access denied.'));
