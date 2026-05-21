@@ -1704,48 +1704,6 @@ function toggleSchedWaitlist(){
   renderSchedWLDrawer();
   toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
 }
-  const btn=document.getElementById('sched-wl-toggle');
-  schedWLVisible=!schedWLVisible;
-  if(btn){
-    btn.style.background=schedWLVisible?'#1a1a1a':'';
-    btn.style.color=schedWLVisible?'#fff':'';
-    btn.style.borderColor=schedWLVisible?'#1a1a1a':'';
-  }
-  if(!schedWLVisible){
-    schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
-    schedWLMarkers=[];
-    return;
-  }
-  // Place black circle pins for active waitlist entries
-  if(!mapObj||!geocoder){toast('Map not ready yet');schedWLVisible=false;return;}
-  const active=waitlist.filter(w=>w.status!=='ignored'&&w.address);
-  if(!active.length){toast('No active waitlist entries with addresses');schedWLVisible=false;return;}
-  const bounds=new google.maps.LatLngBounds();
-  // Extend bounds to include existing schedule markers
-  markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
-  active.forEach(w=>{
-    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    const ringColor=wlStatusRingColor(w.wlStatus||'');
-    geoCode(w.address,(lat,lng)=>{
-      const pos={lat,lng};
-      const m=new google.maps.Marker({
-        position:pos,
-        map:mapObj,
-        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)},
-        title:w.name,zIndex:2
-      });
-      m._gid='schedWL';m._name=w.name;m._wlIdx=waitlist.indexOf(w);
-      const detail=`${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size} · ${w.timePref||'Flexible'}`;
-      const statusLabel=w.wlStatus?` · <span style="font-weight:700;color:${ringColor}">${WL_STATUS_LABELS[w.wlStatus]}</span>`:'';
-      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${w.name}${statusLabel}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${w.address}</div></div>`});
-      m.addListener('click',()=>iw.open(mapObj,m));
-      schedWLMarkers.push(m);
-      bounds.extend(pos);
-      if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}
-    },w.name);
-  });
-  toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
-}
 function getMapRef(prefix){
   return mapObj;
 }
