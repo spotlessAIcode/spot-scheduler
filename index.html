@@ -181,9 +181,37 @@ input[type=date]:focus{outline:none;border-color:var(--accent)}
 .staff-count{font-size:10px;color:#bbb;font-weight:400;min-width:28px;text-align:right}
 .wl-layout{display:grid;grid-template-columns:340px 1fr;flex:1;overflow:hidden;min-height:0}
 .wl-left{overflow-y:auto;border-right:0.5px solid #e8e8e4;background:#fff;display:flex;flex-direction:column}
-.wl-card{background:#fff;border-bottom:0.5px solid #f0efeb;overflow:hidden}
+.wl-card{background:#fff;border-bottom:0.5px solid #f0efeb;overflow:hidden;border-left:3px solid transparent}
 .wl-card:hover{background:#fffbf8}
 .wl-card.ignored{opacity:.45}
+.wl-card.status-ready{border-left-color:#22c55e}
+.wl-card.status-warm{border-left-color:#f59e0b}
+.wl-card.status-hold{border-left-color:#ef4444}
+.wl-card.status-vip{border-left-color:#3b82f6}
+.wl-status-btn{padding:2px 8px;border-radius:8px;font-size:9px;font-weight:600;cursor:pointer;border:0.5px solid;white-space:nowrap;font-family:inherit}
+.wl-status-none{background:#f5f4f0;color:#888;border-color:#e0e0dc}
+.wl-status-ready{background:#dcfce7;color:#15803d;border-color:#86efac}
+.wl-status-warm{background:#fef9c3;color:#a16207;border-color:#fde047}
+.wl-status-hold{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.wl-status-vip{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
+.sched-wl-drawer{width:190px;flex-shrink:0;background:var(--color-background-primary);border-left:0.5px solid #e8e8e4;display:flex;flex-direction:column;overflow:hidden}
+.swd-hd{padding:9px 12px;border-bottom:0.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.swd-title{font-size:11px;font-weight:600;color:#1a1a1a}
+.swd-filters{padding:5px 8px;border-bottom:0.5px solid #e8e8e4;display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0}
+.swd-list{flex:1;overflow-y:auto}
+.swd-row{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 0;border-bottom:0.5px solid #f0efeb;border-left:3px solid transparent;padding-left:8px;cursor:pointer;transition:background .1s}
+.swd-row:hover{background:#fafaf8}
+.swd-row.status-ready{border-left-color:#22c55e}
+.swd-row.status-warm{border-left-color:#f59e0b}
+.swd-row.status-hold{border-left-color:#ef4444}
+.swd-row.status-vip{border-left-color:#3b82f6}
+.swd-row.hidden-pin{opacity:.4}
+.swd-av{width:22px;height:22px;border-radius:50%;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:justify-content:center;font-size:7px;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.swd-info{flex:1;min-width:0}
+.swd-name{font-size:10px;font-weight:500;color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.swd-pet{font-size:8px;color:#aaa}
+.swd-eye{font-size:13px;flex-shrink:0;cursor:pointer;background:none;border:none;padding:0;line-height:1}
+.swd-foot{padding:7px 10px;border-top:0.5px solid #e8e8e4;font-size:9px;color:#aaa;flex-shrink:0}
 .wl-hd{padding:10px 14px;display:flex;align-items:flex-start;gap:8px}
 .wl-av{width:32px;height:32px;border-radius:50%;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 .wl-name{font-size:12px;font-weight:600;color:#1a1a1a}
@@ -487,7 +515,8 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <div class="stat-box"><div class="stat-n">—</div><div class="stat-l">Groomers</div></div>
     <div class="stat-box"><div class="stat-n">—</div><div class="stat-l">In queue</div></div>
   </div>
-  <div class="split-layout">
+  <div class="split-layout" style="display:flex">
+    <div class="split-left" style="width:300px;flex-shrink:0">
     <div class="split-left">
       <div id="status-el"></div>
       <div class="card">
@@ -553,6 +582,16 @@ input[type=range]{width:72px;accent-color:var(--accent)}
       </div>
       <!-- Dropped-pin legend (bottom-right, small) -->
       <div class="map-legend" id="map-legend" style="display:none"></div>
+    </div>
+    <!-- Waitlist drawer — shown when Waitlist toggle is ON -->
+    <div class="sched-wl-drawer" id="sched-wl-drawer" style="display:none">
+      <div class="swd-hd">
+        <span class="swd-title">Waitlist</span>
+        <span id="swd-count" style="font-size:9px;color:#aaa"></span>
+      </div>
+      <div class="swd-filters" id="swd-filters"></div>
+      <div class="swd-list" id="swd-list"></div>
+      <div class="swd-foot">Eye syncs with Waitlist tab</div>
     </div>
   </div>
   <div class="sched-footer">
@@ -765,7 +804,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbzFvHrciinoVThPeIyt9l7zlmZlHFjVSDtfRPHd4T64e_c0aWBL0nCTauHOid99-g4/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz-uSa7RQ431B8opp8ZFVUgxtSF0MKeD21mmXWOS-3ayevw6A65A3AwDsJp6sXaUzsP/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
@@ -805,7 +844,24 @@ let contactSort='recent', contactPageToken=null, selectedContacts=new Set();
 let currentPhase='all', dragCard=null, dragSource=null;
 const queueMarkers={};
 
-// ── PERSISTENCE ───────────────────────────────────────────────
+const WL_STATUSES = ['','ready','warm','hold','vip'];
+const WL_STATUS_LABELS = {'':`No status`,'ready':'Ready','warm':'Warm','hold':'Hold','vip':'VIP'};
+const WL_STATUS_COLORS = {'':`#9ca3af`,'ready':'#22c55e','warm':'#f59e0b','hold':'#ef4444','vip':'#3b82f6'};
+function wlStatusClass(s){return s?`wl-status-${s}`:'wl-status-none';}
+function wlStatusRingColor(s){return WL_STATUS_COLORS[s||'']||'#9ca3af';}
+function cycleWLStatus(idx){
+  const w=waitlist[idx];if(!w)return;
+  const cur=WL_STATUSES.indexOf(w.wlStatus||'');
+  w.wlStatus=WL_STATUSES[(cur+1)%WL_STATUSES.length];
+  saveWaitlistToSheets();
+  renderWaitlist();
+  renderSchedWLDrawer();
+  // Update map pin ring color if visible
+  const m=wlMarkers.find(mk=>mk._name===w.name);
+  if(m)m.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});
+  const sm=schedWLMarkers.find(mk=>mk._name===w.name);
+  if(sm)sm.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});
+}
 function loadPersistedKeys(){
   // Keys (Maps, Anthropic) are now fetched from Script Properties via getConfig()
   // after auth — never stored in localStorage or hardcoded in HTML.
@@ -1028,8 +1084,9 @@ function makeSVGPin(color,label,size=32){
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 // Small black circle for waitlist overlay on schedule map
-function makeWLPin(initials){
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="#1a1a1a"/><circle cx="13" cy="13" r="11" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><text x="13" y="17" text-anchor="middle" fill="#fff" font-size="8" font-family="-apple-system,sans-serif" font-weight="700">${initials}</text></svg>`;
+function makeWLPin(initials, ringColor){
+  const ring=ringColor||'#9ca3af';
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="#1a1a1a"/><circle cx="13" cy="13" r="10" fill="none" stroke="${ring}" stroke-width="3"/><text x="13" y="17" text-anchor="middle" fill="#fff" font-size="8" font-family="-apple-system,sans-serif" font-weight="700">${initials}</text></svg>`;
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 function makePulsingPin(color){
@@ -1535,7 +1592,8 @@ function geocodeAllWaitlist(){
   const bounds=new google.maps.LatLngBounds();
   waitlist.filter(w=>w.status!=='ignored'&&w.address).forEach((w,i)=>{
     const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    placePin(mapObj,w.address,'#1a1a1a',ini,w.name,`${w.dog||'Dog'}·${SIZE_LABELS[w.size]||w.size}`,bounds,wlMarkers,wlTabActive,'wl',(lat,lng)=>{
+    const ringColor=wlStatusRingColor(w.wlStatus||'');
+    placePin(mapObj,w.address,ringColor,ini,w.name,`${w.dog||'Dog'}·${SIZE_LABELS[w.size]||w.size}`,bounds,wlMarkers,wlTabActive,'wl',(lat,lng)=>{
       // Write lat/lng back to entry if not already set
       if(!w.lat||!w.lng){
         w.lat=lat;w.lng=lng;
@@ -1546,9 +1604,106 @@ function geocodeAllWaitlist(){
   });
 }
 
-// ── WAITLIST OVERLAY ON SCHEDULE MAP ─────────────────────────
-// Separate marker array so it never conflicts with wlMarkers[]
+function renderSchedWLDrawer(){
+  const drawer=document.getElementById('sched-wl-drawer');
+  const listEl=document.getElementById('swd-list');
+  const filtersEl=document.getElementById('swd-filters');
+  const countEl=document.getElementById('swd-count');
+  if(!drawer||!listEl)return;
+  const active=waitlist.filter(w=>w.status!=='ignored');
+  if(countEl)countEl.textContent=`${active.length} active`;
+  // Status filter pills
+  const statCounts={ready:0,warm:0,hold:0,vip:0,none:0};
+  active.forEach(w=>{const s=w.wlStatus||'';statCounts[s||'none']=(statCounts[s||'none']||0)+1;});
+  if(filtersEl){
+    filtersEl.innerHTML=`<div class="pill${_swdFilter===''?' active':''}" style="font-size:9px;padding:2px 7px;cursor:pointer" onclick="setSwdFilter('')">All</div>`+
+      Object.entries({ready:'Ready',warm:'Warm',hold:'Hold',vip:'VIP'})
+        .filter(([k])=>statCounts[k]>0)
+        .map(([k,lbl])=>`<div class="wl-status-btn wl-status-${k}${_swdFilter===k?' ':''}" style="cursor:pointer" onclick="setSwdFilter('${k}')">${lbl} ${statCounts[k]}</div>`)
+        .join('');
+  }
+  const filtered=active.filter(w=>!_swdFilter||(w.wlStatus||'')=== _swdFilter);
+  listEl.innerHTML=filtered.map((w,i)=>{
+    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const st=w.wlStatus||'';
+    const stClass=st?`status-${st}`:'';
+    const isHidden=w.mapVisible===false;
+    const eyeColor=st?WL_STATUS_COLORS[st]:'#aaa';
+    return`<div class="swd-row ${stClass}${isHidden?' hidden-pin':''}" data-action="swd-toggle" data-name="${w.name}">
+      <div class="swd-av">${ini}</div>
+      <div class="swd-info">
+        <div class="swd-name">${w.name}</div>
+        <div class="swd-pet">${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size}</div>
+      </div>
+      <button class="swd-eye" data-action="swd-toggle-eye" data-name="${w.name}" style="color:${isHidden?'#ccc':eyeColor}">${isHidden?'🙈':'👁'}</button>
+    </div>`;
+  }).join('');
+  // Bind swd-toggle-eye
+  listEl.querySelectorAll('[data-action="swd-toggle-eye"]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const name=btn.getAttribute('data-name');
+      const w=waitlist.find(wl=>wl.name===name);
+      if(!w)return;
+      w.mapVisible=w.mapVisible===false?true:false;
+      const isOn=w.mapVisible!==false;
+      // Toggle on schedWLMarkers
+      schedWLMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn?mapObj:null));
+      // Also sync wlMarkers
+      wlMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn&&document.getElementById('page-waitlist')?.classList.contains('active')?mapObj:null));
+      renderSchedWLDrawer();
+    });
+  });
+}
+let _swdFilter='';
+function setSwdFilter(f){_swdFilter=f;renderSchedWLDrawer();}
+
+// Updated toggleSchedWaitlist — shows drawer + pins
 function toggleSchedWaitlist(){
+  const btn=document.getElementById('sched-wl-toggle');
+  const drawer=document.getElementById('sched-wl-drawer');
+  schedWLVisible=!schedWLVisible;
+  if(btn){
+    btn.style.background=schedWLVisible?'#1a1a1a':'';
+    btn.style.color=schedWLVisible?'#fff':'';
+    btn.style.borderColor=schedWLVisible?'#1a1a1a':'';
+  }
+  if(drawer)drawer.style.display=schedWLVisible?'flex':'none';
+  if(!schedWLVisible){
+    schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
+    schedWLMarkers=[];
+    return;
+  }
+  if(!mapObj||!geocoder){toast('Map not ready yet');schedWLVisible=false;return;}
+  const active=waitlist.filter(w=>w.status!=='ignored'&&w.address);
+  if(!active.length){toast('No active waitlist entries with addresses');schedWLVisible=false;return;}
+  const bounds=new google.maps.LatLngBounds();
+  markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
+  active.forEach(w=>{
+    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const ringColor=wlStatusRingColor(w.wlStatus||'');
+    geoCode(w.address,(lat,lng)=>{
+      const pos={lat,lng};
+      const isHidden=w.mapVisible===false;
+      const m=new google.maps.Marker({
+        position:pos,
+        map:isHidden?null:mapObj,
+        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)},
+        title:w.name,zIndex:2
+      });
+      m._gid='schedWL';m._name=w.name;
+      const detail=`${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size} · ${w.timePref||'Flexible'}`;
+      const statusLabel=w.wlStatus?` · <span style="font-weight:700;color:${ringColor}">${WL_STATUS_LABELS[w.wlStatus]}</span>`:'';
+      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${w.name}${statusLabel}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${w.address}</div></div>`});
+      m.addListener('click',()=>iw.open(mapObj,m));
+      schedWLMarkers.push(m);
+      bounds.extend(pos);
+      if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}
+    },w.name);
+  });
+  renderSchedWLDrawer();
+  toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
+}
   const btn=document.getElementById('sched-wl-toggle');
   schedWLVisible=!schedWLVisible;
   if(btn){
@@ -1570,17 +1725,19 @@ function toggleSchedWaitlist(){
   markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
   active.forEach(w=>{
     const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const ringColor=wlStatusRingColor(w.wlStatus||'');
     geoCode(w.address,(lat,lng)=>{
       const pos={lat,lng};
       const m=new google.maps.Marker({
         position:pos,
         map:mapObj,
-        icon:{url:makeWLPin(ini),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)},
+        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)},
         title:w.name,zIndex:2
       });
-      m._gid='schedWL';m._name=w.name;
+      m._gid='schedWL';m._name=w.name;m._wlIdx=waitlist.indexOf(w);
       const detail=`${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size} · ${w.timePref||'Flexible'}`;
-      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${w.name}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${w.address}</div></div>`});
+      const statusLabel=w.wlStatus?` · <span style="font-weight:700;color:${ringColor}">${WL_STATUS_LABELS[w.wlStatus]}</span>`:'';
+      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${w.name}${statusLabel}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${w.address}</div></div>`});
       m.addListener('click',()=>iw.open(mapObj,m));
       schedWLMarkers.push(m);
       bounds.extend(pos);
@@ -1798,12 +1955,14 @@ function rowToWlEntry(row){
     dateFrom:cleanDate(row[9]),dateTo:cleanDate(row[10]),
     prefGroomer:row[11]||'',notes:row[12]||'',status:row[13]||'active',
     addedDate:cleanDate(row[14]),
-    lat:row[15]?parseFloat(row[15]):null,lng:row[16]?parseFloat(row[16]):null,slotComplexity:1,svc:'Full groom'};
+    lat:row[15]?parseFloat(row[15]):null,lng:row[16]?parseFloat(row[16]):null,
+    wlStatus:row[17]||'',slotComplexity:1,svc:'Full groom'};
 }
 function wlEntryToRow(w){
   return[w.id||'',w.name||'',w.phone||'',w.email||'',w.address||'',w.dog||'',w.breed||'',
     w.size||'',w.timePref||'',w.dateFrom||'',w.dateTo||'',w.prefGroomer||'',w.notes||'',
-    w.status||'active',w.addedDate||toYMD(new Date()),w.lat!=null?w.lat:'',w.lng!=null?w.lng:''];
+    w.status||'active',w.addedDate||toYMD(new Date()),w.lat!=null?w.lat:'',w.lng!=null?w.lng:'',
+    w.wlStatus||''];
 }
 async function saveWaitlistToSheets(){
   localStorage.setItem('spotless_waitlist',JSON.stringify(waitlist));
@@ -1829,7 +1988,9 @@ function renderWaitlist(){
   el.innerHTML=waitlist.map((w,i)=>{
     const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
     const ignored=w.status==='ignored';
-    return`<div class="wl-card${ignored?' ignored':''}" id="wlc-${i}">
+    const wlSt=w.wlStatus||'';
+    const stClass=wlSt?`status-${wlSt}`:'';
+    return`<div class="wl-card${ignored?' ignored':''}${stClass?' '+stClass:''}" id="wlc-${i}">
       <div class="wl-hd">
         <div class="wl-av">${ini}</div>
         <div style="flex:1;min-width:0">
@@ -1856,6 +2017,7 @@ function renderWaitlist(){
       </div>
       <div class="wl-foot">
         <span class="wsb ${ignored?'wsb-ignored':'wsb-active'}">${ignored?'Ignored':'Active'}</span>
+        <button class="wl-status-btn ${wlSt?`wl-status-${wlSt}`:'wl-status-none'}" data-action="cycle-wl-status" data-idx="${i}">● ${WL_STATUS_LABELS[wlSt]||'No status'}</button>
         <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:8px;padding:2px 6px" data-action="edit-wl" data-idx="${i}">Edit</button>
         ${ignored?`<button class="btn btn-ghost btn-sm" style="font-size:8px;padding:2px 6px" data-action="restore-wl" data-idx="${i}">Restore</button>`
           :`<button class="btn btn-primary btn-sm" style="font-size:8px;padding:2px 6px" data-action="promote-lead" data-idx="${i}">→ Leads</button>`}
@@ -2507,6 +2669,7 @@ function bindAllHandlers(){
     }
     if(a==='remove-wl'){if(confirm('Remove from waitlist?')){waitlist.splice(idx,1);saveWaitlistToSheets();renderWaitlist();geocodeAllWaitlist();}}
     if(a==='restore-wl'){waitlist[idx].status='active';saveWaitlistToSheets();renderWaitlist();}
+    if(a==='cycle-wl-status'){cycleWLStatus(idx);}
     if(a==='promote-lead'){promoteToLead(idx);}
     if(a==='edit-wl'){editWLEntry(idx);}
     if(a==='add-q'){addToQueueAndWaitlist();}
