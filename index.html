@@ -2637,6 +2637,7 @@ function bindAllHandlers(){
       return;
     }
     if(a==='toggle-wl-pin'){
+      const w=waitlist[idx];if(!w)return;
       w.mapVisible=w.mapVisible===false?true:false;
       const wlTabActive=document.getElementById('page-waitlist')?.classList.contains('active');
       const m=wlMarkers.find(mk=>mk._name===w.name);
