@@ -234,7 +234,9 @@ input[type=date]:focus{outline:none;border-color:var(--accent)}
 .wsb-active{background:#dcfce7;color:#15803d}
 .wsb-ignored{background:#f5f4f0;color:#aaa}
 .wsb-future{background:#eff6ff;color:#1d4ed8}
-.wl-add-form{background:#fff;border-bottom:0.5px solid #e8e8e4;padding:12px 14px}
+.wl-card.selected{background:#fff4ed;border-left-color:#f97316 !important;outline:1.5px solid #f97316}
+.wl-card-select-hint{font-size:8px;color:#f97316;font-weight:600;padding:2px 14px 4px 54px;display:none}
+.wl-card.selected .wl-card-select-hint{display:block}
 .wl-add-title{font-size:11px;font-weight:700;color:#1a1a1a;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
 .pin-inline-form{background:var(--accent-light);border:0.5px solid var(--accent-border);border-radius:8px;padding:10px;margin-bottom:0}
 .contacts-layout{display:grid;grid-template-columns:320px 1fr;flex:1;overflow:hidden;min-height:0}
@@ -1942,12 +1944,17 @@ async function migrateLocalToSheets(){
 function renderWaitlist(){
   const el=document.getElementById('wl-cards');if(!el)return;
   if(!waitlist.length){el.innerHTML='<div style="font-size:10px;color:#aaa;text-align:center;padding:20px">No waitlist entries</div>';return;}
+  // Get currently selected phone to preserve selection highlight
+  let _selPhone='';
+  try{const s=localStorage.getItem('spotless_selected');if(s)_selPhone=JSON.parse(s)?.phone||'';}catch(e){}
   el.innerHTML=waitlist.map((w,i)=>{
     const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
     const ignored=w.status==='ignored';
     const wlSt=w.wlStatus||'';
     const stClass=wlSt?`status-${wlSt}`:'';
-    return`<div class="wl-card${ignored?' ignored':''}${stClass?' '+stClass:''}" id="wlc-${i}">
+    const phone=(w.phone||'').replace(/\D/g,'');
+    const isSelected=phone&&phone===_selPhone.replace(/\D/g,'');
+    return`<div class="wl-card${ignored?' ignored':''}${stClass?' '+stClass:''}${isSelected?' selected':''}" id="wlc-${i}" data-idx="${i}" data-action="select-wl-customer" style="cursor:pointer">
       <div class="wl-hd">
         <div class="wl-av">${ini}</div>
         <div style="flex:1;min-width:0">
@@ -1959,6 +1966,7 @@ function renderWaitlist(){
           <button class="ic-btn" data-action="remove-wl" data-idx="${i}" title="Remove">×</button>
         </div>
       </div>
+      <div class="wl-card-select-hint">🐾 Selected — click extension to view in MoeGo</div>
       <div class="wl-body">
         <div class="wl-info">
           <div>📅 ${fmtDate(w.dateFrom)||'–'} to ${fmtDate(w.dateTo)||'–'} · ${w.timePref==='any'?'Flexible':w.timePref||'Flexible'}</div>
@@ -2615,8 +2623,20 @@ function bindAllHandlers(){
     if(a==='toggle-map'){const gid=t.getAttribute('data-id');groomerVisible[gid]=!groomerVisible[gid];markers.filter(m=>m._gid===gid).forEach(m=>m.setMap(groomerVisible[gid]?mapObj:null));updateStaffPanel();}
     if(a==='toggle-pin'){const q=queue[idx];if(q){q.mapVisible=!q.mapVisible;const m=queueMarkers[q.name];if(m)m.setVisible(q.mapVisible);renderQueue();}}
     if(a==='remove-queue'){queue.splice(idx,1);renderQueue();}
-    if(a==='toggle-wl-pin'){
+    if(a==='select-wl-customer'){
+      if(e.target.closest('button')||e.target.closest('.notes-toggle'))return;
       const w=waitlist[idx];if(!w)return;
+      localStorage.setItem('spotless_selected',JSON.stringify({
+        name:w.name,phone:w.phone||'',email:w.email||'',
+        address:w.address||'',dog:w.dog||'',breed:w.breed||'',
+        size:w.size||'md',notes:w.notes||''
+      }));
+      document.querySelectorAll('.wl-card').forEach(c=>c.classList.remove('selected'));
+      document.getElementById('wlc-'+idx)?.classList.add('selected');
+      toast(`🐾 ${w.name} selected — click the 🐾 extension to view in MoeGo`);
+      return;
+    }
+    if(a==='toggle-wl-pin'){
       w.mapVisible=w.mapVisible===false?true:false;
       const wlTabActive=document.getElementById('page-waitlist')?.classList.contains('active');
       const m=wlMarkers.find(mk=>mk._name===w.name);
