@@ -1110,7 +1110,7 @@ function makeSVGPin(color,label,size=32){
 }
 // Small black circle for waitlist overlay on schedule map
 function makeWLPin(initials, ringColor){
-  const ring=ringColor||'#9ca3af';
+  const ring=ringColor||(window._wlPinColor||'#1a1a1a');
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="#1a1a1a"/><circle cx="13" cy="13" r="10" fill="none" stroke="${ring}" stroke-width="3"/><text x="13" y="17" text-anchor="middle" fill="#fff" font-size="8" font-family="-apple-system,sans-serif" font-weight="700">${initials}</text></svg>`;
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
@@ -2159,7 +2159,7 @@ function dropFocusedPin(f,bounds){
   if(!mapObj||!f.lat||!f.lng)return;
   const svgIcon={
     path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-    fillColor:'#f97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:1.5,scale:1.6,
+    fillColor:window._focusedPinColor||'#f97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:1.5,scale:1.6,
     anchor:new google.maps.Point(12,22)
   };
   const marker=new google.maps.Marker({
@@ -2896,6 +2896,8 @@ async function loadWeights(){
 // ── PRESETS ───────────────────────────────────────────────────
 const PRESET_DEFAULTS={
   drop_pin_color:'#991b1b',
+  wl_pin_color:'#1a1a1a',
+  focused_pin_color:'#f97316',
   accent_color:'var(--accent-default,#f97316)',
   font_size:'1',
   font_family:'Inter',
@@ -2942,6 +2944,8 @@ function applyPresets(){
   }
   // Drop pin color
   window._dropPinColor=getPresetVal('drop_pin_color')||'#991b1b';
+  window._wlPinColor=getPresetVal('wl_pin_color')||'#1a1a1a';
+  window._focusedPinColor=getPresetVal('focused_pin_color')||'#f97316';
   // Row density
   const density=getPresetVal('row_density')||'comfortable';
   const padMap={compact:'4px',comfortable:'8px',spacious:'13px'};
@@ -3009,6 +3013,25 @@ function renderPresetsPage(){
         <span style="font-size:10px;color:#888" id="ps-pin-color-val">${curPin}</span>
         <button class="preset-save-me" onclick="savePresetForMe('drop_pin_color',document.getElementById('ps-pin-color').value)">Save for me</button>
         ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('drop_pin_color',document.getElementById('ps-pin-color').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+      </div>
+    </div>
+    </div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Waitlist pin color</div><div class="preset-lbl-sub">Color of waitlist customer pins on map</div></div>
+      <div class="preset-ctrl">
+        <input type="color" id="ps-wl-pin-color" value="${getPresetVal('wl_pin_color')||'#1a1a1a'}" style="width:32px;height:32px;border-radius:6px;border:0.5px solid #e0e0dc;padding:2px;cursor:pointer" oninput="window._wlPinColor=this.value;document.getElementById('ps-wl-pin-color-val').textContent=this.value">
+        <span style="font-size:10px;color:#888" id="ps-wl-pin-color-val">${getPresetVal('wl_pin_color')||'#1a1a1a'}</span>
+        <button class="preset-save-me" onclick="savePresetForMe('wl_pin_color',document.getElementById('ps-wl-pin-color').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('wl_pin_color',document.getElementById('ps-wl-pin-color').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
+      </div>
+    </div>
+    <div class="preset-row">
+      <div class="preset-lbl"><div class="preset-lbl-title">Focused pin color</div><div class="preset-lbl-sub">Color of focused customer pins on map</div></div>
+      <div class="preset-ctrl">
+        <input type="color" id="ps-focused-pin-color" value="${getPresetVal('focused_pin_color')||'#f97316'}" style="width:32px;height:32px;border-radius:6px;border:0.5px solid #e0e0dc;padding:2px;cursor:pointer" oninput="window._focusedPinColor=this.value;document.getElementById('ps-focused-pin-color-val').textContent=this.value">
+        <span style="font-size:10px;color:#888" id="ps-focused-pin-color-val">${getPresetVal('focused_pin_color')||'#f97316'}</span>
+        <button class="preset-save-me" onclick="savePresetForMe('focused_pin_color',document.getElementById('ps-focused-pin-color').value)">Save for me</button>
+        ${isOwner?`<button class="preset-save-all" onclick="savePresetForAll('focused_pin_color',document.getElementById('ps-focused-pin-color').value)">Save for all</button>`:`<span class="preset-owner-only">🔒</span>`}
       </div>
     </div>
   </div>
@@ -3177,7 +3200,7 @@ function placeFocusPin(){
   // Pulsing orange pin for focused customer
   const svgIcon={
     path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-    fillColor:'#f97316',
+    fillColor:window._focusedPinColor||'#f97316',
     fillOpacity:1,
     strokeColor:'#fff',
     strokeWeight:2,
