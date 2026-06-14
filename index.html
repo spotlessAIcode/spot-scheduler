@@ -2943,9 +2943,40 @@ function applyPresets(){
     root.style.setProperty('--accent-dark',ac);
   }
   // Drop pin color
+  const prevWlColor = window._wlPinColor;
+  const prevFocusedColor = window._focusedPinColor;
   window._dropPinColor=getPresetVal('drop_pin_color')||'#991b1b';
   window._wlPinColor=getPresetVal('wl_pin_color')||'#1a1a1a';
   window._focusedPinColor=getPresetVal('focused_pin_color')||'#f97316';
+  // Re-plot WL markers if color changed and map is ready
+  if(mapObj && geocoder && window._wlPinColor !== prevWlColor && waitlist && waitlist.length){
+    // Update existing markers in place — faster than full re-geocode
+    if(typeof wlMarkers !== 'undefined'){
+      wlMarkers.forEach((m,i)=>{
+        const w=waitlist[i];if(!w)return;
+        const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+        const ringColor=wlStatusRingColor(w.wlStatus||'');
+        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});}catch(e){}
+      });
+    }
+    if(typeof schedWLMarkers !== 'undefined'){
+      schedWLMarkers.forEach((m,i)=>{
+        const w=waitlist[i];if(!w)return;
+        const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+        const ringColor=wlStatusRingColor(w.wlStatus||'');
+        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});}catch(e){}
+      });
+    }
+  }
+  // Re-plot focused markers if color changed
+  if(mapObj && window._focusedPinColor !== prevFocusedColor && typeof focusedMarkers !== 'undefined' && focusedMarkers.length){
+    const svgIcon={
+      path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      fillColor:window._focusedPinColor,fillOpacity:1,strokeColor:'#fff',strokeWeight:1.5,scale:1.6,
+      anchor:new google.maps.Point(12,22)
+    };
+    focusedMarkers.forEach(m=>{try{m.setIcon(svgIcon);}catch(e){}});
+  }
   // Row density
   const density=getPresetVal('row_density')||'comfortable';
   const padMap={compact:'4px',comfortable:'8px',spacious:'13px'};
