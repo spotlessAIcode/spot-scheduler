@@ -883,9 +883,9 @@ function cycleWLStatus(idx){
   renderSchedWLDrawer();
   // Update map pin ring color if visible
   const m=wlMarkers.find(mk=>mk._name===w.name);
-  if(m)m.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});
+  if(m)m.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(28,36),anchor:new google.maps.Point(14,36)});
   const sm=schedWLMarkers.find(mk=>mk._name===w.name);
-  if(sm)sm.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});
+  if(sm)sm.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(28,36),anchor:new google.maps.Point(14,36)});
 }
 function loadPersistedKeys(){
   // Keys (Maps, Anthropic) are now fetched from Script Properties via getConfig()
@@ -1110,8 +1110,9 @@ function makeSVGPin(color,label,size=32){
 }
 // Small black circle for waitlist overlay on schedule map
 function makeWLPin(initials, ringColor){
-  const ring=ringColor||(window._wlPinColor||'#1a1a1a');
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="#1a1a1a"/><circle cx="13" cy="13" r="10" fill="none" stroke="${ring}" stroke-width="3"/><text x="13" y="17" text-anchor="middle" fill="#fff" font-size="8" font-family="-apple-system,sans-serif" font-weight="700">${initials}</text></svg>`;
+  const fill=ringColor||(window._wlPinColor||'#1a1a1a');
+  // Teardrop pin: wider at top, rounded bottom point
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.89 14 22 14 22s14-12.11 14-22C28 6.27 21.73 0 14 0z" fill="${fill}"/><text x="14" y="18" text-anchor="middle" fill="#fff" font-size="9" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${initials}</text></svg>`;
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 function makePulsingPin(color){
@@ -1722,7 +1723,7 @@ function toggleSchedWaitlist(){
       const m=new google.maps.Marker({
         position:pos,
         map:isHidden?null:mapObj,
-        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)},
+        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(28,36),anchor:new google.maps.Point(14,36)},
         title:w.name,zIndex:2
       });
       m._gid='schedWL';m._name=w.name;
@@ -2956,7 +2957,7 @@ function applyPresets(){
         const w=waitlist[i];if(!w)return;
         const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
         const ringColor=wlStatusRingColor(w.wlStatus||'');
-        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});}catch(e){}
+        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(28,36),anchor:new google.maps.Point(14,36)});}catch(e){}
       });
     }
     if(typeof schedWLMarkers !== 'undefined'){
@@ -2964,7 +2965,7 @@ function applyPresets(){
         const w=waitlist[i];if(!w)return;
         const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
         const ringColor=wlStatusRingColor(w.wlStatus||'');
-        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(26,26),anchor:new google.maps.Point(13,13)});}catch(e){}
+        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(28,36),anchor:new google.maps.Point(14,36)});}catch(e){}
       });
     }
   }
