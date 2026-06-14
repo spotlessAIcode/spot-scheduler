@@ -873,7 +873,7 @@ const WL_STATUSES = ['','ready','warm','hold','vip'];
 const WL_STATUS_LABELS = {'':`No status`,'ready':'Ready','warm':'Warm','hold':'Hold','vip':'VIP'};
 const WL_STATUS_COLORS = {'':`#9ca3af`,'ready':'#22c55e','warm':'#f59e0b','hold':'#ef4444','vip':'#3b82f6'};
 function wlStatusClass(s){return s?`wl-status-${s}`:'wl-status-none';}
-function wlStatusRingColor(s){return WL_STATUS_COLORS[s||'']||'#9ca3af';}
+function wlStatusRingColor(s){return WL_STATUS_COLORS[s||'']||(window._wlPinColor||'#1a1a1a');}
 function cycleWLStatus(idx){
   const w=waitlist[idx];if(!w)return;
   const cur=WL_STATUSES.indexOf(w.wlStatus||'');
