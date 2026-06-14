@@ -463,6 +463,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <div class="nav-section">Scheduling</div>
     <div class="nl active" id="nl-schedule" onclick="showPage('schedule')"><span class="nl-icon">📅</span>Schedule</div>
     <div class="nl" id="nl-waitlist" onclick="showPage('waitlist')"><span class="nl-icon">📋</span>Waitlist</div>
+    <div class="nl" id="nl-focused" onclick="showPage('focused')"><span class="nl-icon">📍</span>Focused</div>
     <div class="nav-section">CRM</div>
     <div class="nl" id="nl-contacts" onclick="showPage('contacts')"><span class="nl-icon">👥</span>Contacts</div>
     <div class="nl" id="nl-leads" onclick="showPage('leads')"><span class="nl-icon">🎯</span>Leads</div>
@@ -643,6 +644,23 @@ input[type=range]{width:72px;accent-color:var(--accent)}
   </div>
 </div>
 
+<!-- FOCUSED PAGE -->
+<div class="page" id="page-focused">
+  <div class="topbar">
+    <div style="flex:1"><div class="page-title">Focused</div><div class="page-sub" id="focused-sub">Loading…</div></div>
+    <button class="pill" id="focused-pins-toggle" onclick="toggleAllFocusedPins(this)">📍 Show map</button>
+    <button class="pill" id="focused-refresh-btn" onclick="loadFocusedFromSheets()">↻ Refresh</button>
+  </div>
+  <div class="wl-layout">
+    <div class="wl-left" id="focused-left">
+      <div id="focused-cards"></div>
+    </div>
+    <div class="map-wrap" id="focused-map-wrap" data-map-slot="focused">
+      <div class="map-slot-target" id="focused-map-slot" style="width:100%;height:100%"></div>
+    </div>
+  </div>
+</div>
+
 <!-- CONTACTS PAGE -->
 <div class="page" id="page-contacts">
   <div class="topbar">
@@ -811,7 +829,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 // (Maps key, Anthropic key, Sheet ID, owner email) live in
 // Apps Script → Project Settings → Script Properties and are
 // fetched after authentication via getConfig().
-const API_URL = 'https://script.google.com/macros/s/AKfycbyYBtwEWBwfOZ0U_bWagJ6ZmXgq_8FRgsSENtsXM1LL95Ja43znbi5QjX6GSoLg5KPL/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyBAk42sOQgDVCtLpYb4gnd7PwG-TIOOKhM-snObLhrpcZgdy_FlFlN4Wjyp3f2G04/exec';
 const APP_VERSION = '4.0';
 const PRESERVED_KEYS = ['spotless_maps_key','spotless_ant_key','spotless_geo_cache'];
 const SIZE_LABELS = {xs:'X-Small',sm:'Small',md:'Medium',lg:'Large',xl:'XL',sdoodle:'Sm Doodle',mdoodle:'Med Doodle',ldoodle:'Lg Doodle',cat:'Cat'};
@@ -844,7 +862,7 @@ let groomerState={}, groomerOverrides={}, groomerVisible={};
 let markers=[], wlMarkers=[], ctMarkers=[];
 let queue=[], calendarData={}, currentDate=null;
 let contactResults=[], selectedContact=null;
-let waitlist=[], leads=[], tasks=[];
+let waitlist=[], focused=[], leads=[], tasks=[];
 let schedPins=[], wlPins=[], ctPins=[], leadsPins=[];
 let schedWLMarkers=[], schedWLVisible=false;
 let contactSort='recent', contactPageToken=null, selectedContacts=new Set();
@@ -1161,6 +1179,10 @@ function showPage(id){
   setTabMarkersVisible(id);
   // Move single mapObj into the correct tab's slot
   if(id==='schedule') moveMapTo('map-wrap');
+  if(id==='focused'){
+    if(mapObj)setTimeout(()=>{const slot=document.getElementById('focused-map-slot');if(slot&&!slot._mapMoved){mapObj.getDiv().parentNode&&slot.appendChild(mapObj.getDiv());slot._mapMoved=true;}},100);
+    loadFocusedFromSheets();
+  }
   if(id==='waitlist'){
     moveMapTo('wl-map-slot');
     if(mapObj&&geocoder&&waitlist.length)geocodeAllWaitlist();
@@ -2037,6 +2059,118 @@ function saveWLForm(){
   document.getElementById('wl-pin-form').innerHTML='';
   renderWaitlist();if(mapObj&&geocoder)geocodeAllWaitlist();
   toast(name+' added to waitlist');
+}
+
+// ── FOCUSED VIEW ──────────────────────────────────────────────
+let focusedMarkers=[], focusedPinsVisible=false;
+
+function rowToFocusedEntry(row){
+  if(!row||!row[1])return null;
+  const cleanDate=s=>s?String(s).split('T')[0]:'';
+  return{id:row[0]||Date.now(),name:row[1],phone:row[2]||'',email:row[3]||'',address:row[4]||'',
+    dog:row[5]||'',breed:row[6]||'',size:row[7]||'md',timePref:row[8]||'any',
+    dateFrom:cleanDate(row[9]),dateTo:cleanDate(row[10]),
+    prefGroomer:row[11]||'',notes:row[12]||'',status:row[13]||'active',
+    addedDate:cleanDate(row[14]),
+    lat:row[15]?parseFloat(row[15]):null,lng:row[16]?parseFloat(row[16]):null,
+    wlStatus:row[17]||''};
+}
+function focusedEntryToRow(f){
+  return[f.id||'',f.name||'',f.phone||'',f.email||'',f.address||'',f.dog||'',f.breed||'',
+    f.size||'',f.timePref||'',f.dateFrom||'',f.dateTo||'',f.prefGroomer||'',f.notes||'',
+    f.status||'active',f.addedDate||toYMD(new Date()),f.lat!=null?f.lat:'',f.lng!=null?f.lng:'',
+    f.wlStatus||''];
+}
+async function loadFocusedFromSheets(){
+  const sub=document.getElementById('focused-sub');
+  if(sub)sub.textContent='Loading…';
+  try{
+    const res=await apiGet('getFocused');
+    if(res.ok){
+      focused=res.rows.map(rowToFocusedEntry).filter(Boolean);
+      renderFocused();
+      if(sub)sub.textContent=focused.length+' customer'+(focused.length!==1?'s':'')+' in focus';
+    }else{
+      if(sub)sub.textContent='Error loading';
+    }
+  }catch(e){if(sub)sub.textContent='Error: '+e.message;}
+}
+async function saveFocusedToSheets(){
+  try{await apiPost('saveFocused',{rows:focused.map(focusedEntryToRow)});}
+  catch(e){console.warn('Focused save failed:',e.message);}
+}
+function renderFocused(){
+  const el=document.getElementById('focused-cards');
+  if(!el)return;
+  if(!focused.length){
+    el.innerHTML='<div style="font-size:11px;color:#aaa;text-align:center;padding:20px">No focused customers — add from the extension</div>';
+    return;
+  }
+  el.innerHTML=focused.map((f,i)=>{
+    const ini=(f.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+    return `<div class="wl-card" style="display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-bottom:0.5px solid #f0f0ec;border-left:3px solid #f97316">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0">${ini}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:500;color:#1a1a1a">${f.name}</div>
+          <div style="font-size:9px;color:#888">${f.dog?`${f.dog} · `:''}  ${f.breed||''}${f.size?' · '+f.size.toUpperCase():''}</div>
+        </div>
+        <button onclick="removeFocused(${i})" style="font-size:9px;padding:2px 7px;border-radius:4px;border:0.5px solid #e0e0dc;background:#fff;color:#888;cursor:pointer">Remove</button>
+      </div>
+      <div style="font-size:9px;color:#aaa;padding-left:36px">${f.address||''}</div>
+      ${f.phone?`<div style="font-size:9px;color:#aaa;padding-left:36px">${f.phone}${f.email?' · '+f.email:''}</div>`:''}
+      ${f.notes?`<div style="font-size:9px;color:#888;padding-left:36px;font-style:italic">${f.notes}</div>`:''}
+      <div style="font-size:8px;color:#ccc;padding-left:36px">Added ${f.addedDate||''}</div>
+    </div>`;
+  }).join('');
+}
+function removeFocused(idx){
+  if(!confirm('Remove '+focused[idx].name+' from Focused?'))return;
+  focused.splice(idx,1);
+  saveFocusedToSheets();
+  renderFocused();
+  toast('Removed from Focused');
+}
+function toggleAllFocusedPins(btn){
+  focusedPinsVisible=!focusedPinsVisible;
+  if(focusedPinsVisible){
+    btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
+    geocodeAllFocused();
+  }else{
+    btn.style.background='';btn.style.color='';btn.style.borderColor='';
+    focusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});focusedMarkers=[];
+  }
+}
+function geocodeAllFocused(){
+  if(!mapObj||!geocoder)return;
+  focusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});focusedMarkers=[];
+  const bounds=new google.maps.LatLngBounds();
+  focused.forEach(f=>{
+    if(!f.lat||!f.lng){
+      if(!f.address)return;
+      geoCode(f.address,(lat,lng)=>{f.lat=lat;f.lng=lng;saveFocusedToSheets();dropFocusedPin(f,bounds);},f.name);
+    }else{
+      dropFocusedPin(f,bounds);
+    }
+  });
+  setTimeout(()=>{if(!bounds.isEmpty())mapObj.fitBounds(bounds,{padding:40});},1500);
+}
+function dropFocusedPin(f,bounds){
+  if(!mapObj||!f.lat||!f.lng)return;
+  const svgIcon={
+    path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+    fillColor:'#f97316',fillOpacity:1,strokeColor:'#fff',strokeWeight:1.5,scale:1.6,
+    anchor:new google.maps.Point(12,22)
+  };
+  const marker=new google.maps.Marker({
+    position:{lat:f.lat,lng:f.lng},map:mapObj,icon:svgIcon,title:f.name,zIndex:99
+  });
+  const iw=new google.maps.InfoWindow({
+    content:`<div style="font-size:11px;font-weight:600;color:#c2410c">${f.name}</div><div style="font-size:10px;color:#666">${f.dog||''}${f.breed?' · '+f.breed:''}</div><div style="font-size:9px;color:#aaa">${f.address||''}</div>`
+  });
+  marker.addListener('click',()=>iw.open(mapObj,marker));
+  focusedMarkers.push(marker);
+  if(bounds&&f.lat&&f.lng)bounds.extend({lat:f.lat,lng:f.lng});
 }
 
 // ── CONTACTS VIEW ─────────────────────────────────────────────
@@ -2977,6 +3111,7 @@ function bootApp(){
   buildWeekNav(today);
   loadGroomers();
   loadWaitlistFromSheets();
+  loadFocusedFromSheets();
   loadWeights();
   loadPresets();
   // Read URL focus params from extension
