@@ -503,6 +503,14 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <div class="pib drop" id="sched-pin-drop">Drop pin</div>
     <div class="pib" id="sched-pin-clear">Clear all</div>
   </div>
+  <div id="focus-banner" style="display:none;padding:6px 14px;background:#fff7ed;border-bottom:1.5px solid #fed7aa;display:none;align-items:center;gap:8px;flex-shrink:0">
+    <div style="width:24px;height:24px;border-radius:50%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0" id="focus-avatar">?</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:600;color:#c2410c" id="focus-name">Customer</div>
+      <div style="font-size:9px;color:#c2410c;opacity:0.8" id="focus-detail">Loading nearby appointments…</div>
+    </div>
+    <button onclick="clearFocus()" style="font-size:9px;padding:2px 8px;border-radius:4px;border:0.5px solid #fed7aa;background:#fff;color:#c2410c;cursor:pointer">✕ Clear</button>
+  </div>
   <div id="sched-pin-prompt" style="display:none" class="pin-prompt">
     <span>📍</span>
     <div class="pin-prompt-addr" id="sched-pin-addr"></div>
@@ -1446,7 +1454,7 @@ function plotAllPins(){
 
   const bounds=new google.maps.LatLngBounds();
   let pending=0;
-  function onAllPlaced(){pending--;if(pending<=0)drawRouteLines();}
+  function onAllPlaced(){pending--;if(pending<=0){drawRouteLines();placeFocusPin();updateFocusDistances();}}
   GROOMERS.forEach(g=>{
     const gd=calendarData[g.id];if(!gd||!gd.appts.length)return;
     gd.appts.forEach((a,i)=>{
@@ -1463,7 +1471,12 @@ function plotAllPins(){
     const q=queue.find(q=>q.name===a.customer);
     placePin(mapObj,a.address,'#ea580c',String(i+1),a.customer,`${a.time}·Unassigned`,bounds,markers,q?q.mapVisible!==false:true,'UNASSIGNED');
   });
-  if(bounds.isEmpty())return;
+  if(bounds.isEmpty()){
+    // No appointments but focus pin should still drop
+    placeFocusPin();
+    updateFocusDistances();
+    return;
+  }
   mapObj.fitBounds(bounds,{padding:40});
 }
 function placePin(map,addr,color,label,name,detail,bounds,markerArr,visible,gid,onPlaced){
@@ -2966,6 +2979,110 @@ function bootApp(){
   loadWaitlistFromSheets();
   loadWeights();
   loadPresets();
+  // Read URL focus params from extension
+  readFocusParams();
+}
+
+// ── FOCUS / EXTENSION INTEGRATION ────────────────────────────
+let _focusLat=null, _focusLng=null, _focusName=null, _focusMarker=null;
+
+function haversine(lat1,lng1,lat2,lng2){
+  const R=3958.8;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function readFocusParams(){
+  const p=new URLSearchParams(window.location.search);
+  const lat=parseFloat(p.get('lat'));
+  const lng=parseFloat(p.get('lng'));
+  const name=p.get('name')||'';
+  const date=p.get('date')||'';
+  if(!lat||!lng||!name) return;
+  _focusLat=lat; _focusLng=lng; _focusName=decodeURIComponent(name);
+  // Set date and auto-load if provided
+  if(date){
+    const dateInp=document.getElementById('date-inp');
+    if(dateInp){
+      dateInp.value=date;
+      const parsed=parseLocal(date);
+      buildWeekNav(parsed);
+      // Load day after groomers ready (brief defer)
+      setTimeout(()=>loadDay(),800);
+    }
+  }
+  showFocusBanner();
+}
+
+function showFocusBanner(){
+  const banner=document.getElementById('focus-banner');
+  if(!banner||!_focusName) return;
+  banner.style.display='flex';
+  const av=document.getElementById('focus-avatar');
+  const nm=document.getElementById('focus-name');
+  if(av) av.textContent=_focusName.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+  if(nm) nm.textContent=_focusName;
+  document.getElementById('focus-detail').textContent='Loading nearby appointments…';
+}
+
+function clearFocus(){
+  _focusLat=null; _focusLng=null; _focusName=null;
+  if(_focusMarker){ try{_focusMarker.setMap(null);}catch(e){} _focusMarker=null; }
+  const banner=document.getElementById('focus-banner');
+  if(banner) banner.style.display='none';
+  // Remove focus distance labels from all appts
+  document.querySelectorAll('.focus-dist').forEach(el=>el.remove());
+}
+
+function placeFocusPin(){
+  if(!mapObj||!_focusLat||!_focusLng) return;
+  if(_focusMarker){ try{_focusMarker.setMap(null);}catch(e){} }
+  // Pulsing orange pin for focused customer
+  const svgIcon={
+    path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+    fillColor:'#f97316',
+    fillOpacity:1,
+    strokeColor:'#fff',
+    strokeWeight:2,
+    scale:1.8,
+    anchor:new google.maps.Point(12,22)
+  };
+  _focusMarker=new google.maps.Marker({
+    position:{lat:_focusLat,lng:_focusLng},
+    map:mapObj,
+    icon:svgIcon,
+    title:_focusName,
+    zIndex:999
+  });
+  const iw=new google.maps.InfoWindow({content:`<div style="font-size:11px;font-weight:600;color:#c2410c">${_focusName}</div>`});
+  _focusMarker.addListener('click',()=>iw.open(mapObj,_focusMarker));
+  mapObj.panTo({lat:_focusLat,lng:_focusLng});
+}
+
+function updateFocusDistances(){
+  if(!_focusLat||!_focusLng) return;
+  let nearest=[];
+  // Gather all geocoded appointments
+  Object.values(calendarData||{}).forEach(gd=>{
+    (gd.appts||[]).forEach(a=>{
+      if(a._latLng){
+        const dist=haversine(_focusLat,_focusLng,a._latLng.lat,a._latLng.lng);
+        nearest.push({name:a.customer,time:a.time,dist});
+      }
+    });
+  });
+  nearest.sort((a,b)=>a.dist-b.dist);
+  const top3=nearest.slice(0,3);
+  const detailEl=document.getElementById('focus-detail');
+  if(detailEl){
+    if(top3.length){
+      detailEl.textContent=top3.map(a=>`${a.time} ${a.name} (${a.dist.toFixed(1)} mi)`).join(' · ');
+    } else {
+      detailEl.textContent='No geocoded appointments yet';
+    }
+  }
 }
 document.addEventListener('DOMContentLoaded',()=>{
   bindAllHandlers();
