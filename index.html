@@ -496,6 +496,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <button class="pill active" id="sched-view-cal">📅 Calendar</button>
     <button class="pill" id="sched-view-map-btn">🗺 Map view</button>
     <button class="pill" id="sched-wl-toggle" style="display:none">⬤ Waitlist</button>
+    <button class="pill" id="sched-focused-toggle" style="display:none">◆ Focused</button>
     <button class="btn btn-primary btn-sm" id="load-btn">Load day</button>
   </div>
   <div class="pin-bar">
@@ -1510,6 +1511,7 @@ function plotAllPins(){
   // Also clear waitlist overlay so it re-renders fresh on next toggle
   schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedWLMarkers=[];
   if(schedWLVisible){schedWLVisible=false;const b=document.getElementById('sched-wl-toggle');if(b){b.style.background='';b.style.color='';b.style.borderColor='';}}
+  if(schedFocusedVisible){schedFocusedVisible=false;schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedFocusedMarkers=[];const bf=document.getElementById('sched-focused-toggle');if(bf){bf.style.background='';bf.style.color='';bf.style.borderColor='';}}
 
   const bounds=new google.maps.LatLngBounds();
   let pending=0;
@@ -1806,6 +1808,51 @@ function toggleSchedWaitlist(){
   renderSchedWLDrawer();
   toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
 }
+let schedFocusedMarkers=[], schedFocusedVisible=false;
+function toggleSchedFocused(){
+  const btn=document.getElementById('sched-focused-toggle');
+  schedFocusedVisible=!schedFocusedVisible;
+  const fc=window._focusedPinColor||'#f59e0b';
+  if(btn){
+    btn.style.background=schedFocusedVisible?fc:'';
+    btn.style.color=schedFocusedVisible?'#fff':'';
+    btn.style.borderColor=schedFocusedVisible?fc:'';
+  }
+  if(!schedFocusedVisible){
+    schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
+    schedFocusedMarkers=[];
+    return;
+  }
+  if(!mapObj||!geocoder){toast('Map not ready yet');schedFocusedVisible=false;return;}
+  const active=focused.filter(f=>f.address||(f.lat&&f.lng));
+  if(!active.length){toast('No focused customers to show');schedFocusedVisible=false;return;}
+  const bounds=new google.maps.LatLngBounds();
+  markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
+  active.forEach(f=>{
+    const ini=(f.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+    const fsvg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${fc}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${fc}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini}</text></svg>`;
+    const pinUrl='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(fsvg);
+    const placeFocusedPin=(lat,lng)=>{
+      const pos={lat,lng};
+      const m=new google.maps.Marker({
+        position:pos,map:mapObj,
+        icon:{url:pinUrl,scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)},
+        title:f.name,zIndex:4
+      });
+      m._gid='schedFocused';m._name=f.name;
+      const detail=`${f.dog||''}${f.breed?' · '+f.breed:''} · ${f.size||''}`;
+      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${f.name}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${f.address||''}</div></div>`});
+      m.addListener('click',()=>iw.open(mapObj,m));
+      schedFocusedMarkers.push(m);
+      bounds.extend(pos);
+      if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}
+    };
+    if(f.lat&&f.lng){placeFocusedPin(f.lat,f.lng);}
+    else{geoCode(f.address,(lat,lng)=>{f.lat=lat;f.lng=lng;placeFocusedPin(lat,lng);},f.name);}
+  });
+  toast(`Showing ${active.length} focused customer${active.length!==1?'s':''} on map`);
+}
+
 function getMapRef(prefix){
   return mapObj;
 }
@@ -1992,6 +2039,7 @@ async function loadWaitlistFromSheets(){
     renderWaitlist();
     // Show the waitlist overlay toggle on the Schedule tab
     const wlBtn=document.getElementById('sched-wl-toggle');
+    const focBtn=document.getElementById('sched-focused-toggle');
     if(wlBtn&&waitlist.filter(w=>w.status!=='ignored'&&w.address).length>0)wlBtn.style.display='';
     // Init or geocode waitlist map
     let ga=0;const tryG=()=>{
@@ -2790,6 +2838,7 @@ function bindAllHandlers(){
     'contacts-add-leads':()=>addSelectedToLeads(),
     'load-btn':()=>loadDay(),
     'sched-wl-toggle':()=>toggleSchedWaitlist(),
+    'sched-focused-toggle':()=>toggleSchedFocused(),
     'add-wl-btn':()=>showAddWaitlistForm(),
     'wl-refresh-btn':()=>loadWaitlistFromSheets(),
     'search-btn':()=>searchContacts(),
@@ -2975,7 +3024,15 @@ let _sheetPresets={};
 let _localPresets={};
 
 function loadLocalPresets(){
-  try{const s=localStorage.getItem('spotless_presets');if(s)_localPresets=JSON.parse(s);}catch(e){}
+  try{
+    const s=localStorage.getItem('spotless_presets');
+    if(s)_localPresets=JSON.parse(s);
+    // Migrate old default gray WL color to new default
+    if(_localPresets.wl_pin_color==='#9ca3af'||_localPresets.wl_pin_color==='#1a1a1a'){
+      delete _localPresets.wl_pin_color;
+      localStorage.setItem('spotless_presets',JSON.stringify(_localPresets));
+    }
+  }catch(e){}
 }
 function saveLocalPreset(key,val){
   _localPresets[key]=val;
@@ -3039,13 +3096,17 @@ function applyPresets(){
   // Re-plot focused markers if color changed
   if(mapObj && window._focusedPinColor !== prevFocusedColor && typeof focusedMarkers !== 'undefined' && focusedMarkers.length){
     // Rebuild focused pin SVGs with new color
-    focusedMarkers.forEach((m,fi)=>{
-      const fo=focused[fi];if(!fo)return;
-      const ini4=(fo.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
-      const nc=window._focusedPinColor||'#f59e0b';
-      const nsvg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${nc}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${nc}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini4}</text></svg>`;
-      try{m.setIcon({url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(nsvg),scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)});}catch(e){}
-    });
+    const _recolorFocused=(arr,srcArr)=>{
+      arr.forEach((m,fi)=>{
+        const fo=srcArr?srcArr[fi]:null;
+        const ini4=fo?(fo.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase():'';
+        const nc=window._focusedPinColor||'#f59e0b';
+        const nsvg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${nc}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${nc}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini4}</text></svg>`;
+        try{m.setIcon({url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(nsvg),scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)});}catch(e){}
+      });
+    };
+    _recolorFocused(focusedMarkers,focused);
+    if(typeof schedFocusedMarkers!=='undefined')_recolorFocused(schedFocusedMarkers,focused);
   }
   // Row density
   const density=getPresetVal('row_density')||'comfortable';
