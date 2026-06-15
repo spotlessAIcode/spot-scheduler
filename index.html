@@ -884,7 +884,10 @@ const WL_STATUSES = ['','ready','warm','hold','vip'];
 const WL_STATUS_LABELS = {'':`No status`,'ready':'Ready','warm':'Warm','hold':'Hold','vip':'VIP'};
 const WL_STATUS_COLORS = {'':`#9ca3af`,'ready':'#22c55e','warm':'#f59e0b','hold':'#ef4444','vip':'#3b82f6'};
 function wlStatusClass(s){return s?`wl-status-${s}`:'wl-status-none';}
-function wlStatusRingColor(s){return WL_STATUS_COLORS[s||'']||(window._wlPinColor||'#1a1a1a');}
+function wlStatusRingColor(s){
+  if(s && WL_STATUS_COLORS[s]) return WL_STATUS_COLORS[s];
+  return window._wlPinColor||'#0d9488'; // teal default for no-status
+}
 function cycleWLStatus(idx){
   const w=waitlist[idx];if(!w)return;
   const cur=WL_STATUSES.indexOf(w.wlStatus||'');
@@ -3028,7 +3031,7 @@ function loadLocalPresets(){
     const s=localStorage.getItem('spotless_presets');
     if(s)_localPresets=JSON.parse(s);
     // Migrate old default gray WL color to new default
-    if(_localPresets.wl_pin_color==='#9ca3af'||_localPresets.wl_pin_color==='#1a1a1a'){
+    if(['#9ca3af','#1a1a1a','#e11d48'].includes(_localPresets.wl_pin_color)){
       delete _localPresets.wl_pin_color;
       localStorage.setItem('spotless_presets',JSON.stringify(_localPresets));
     }
@@ -3071,7 +3074,7 @@ function applyPresets(){
   const prevWlColor = window._wlPinColor;
   const prevFocusedColor = window._focusedPinColor;
   window._dropPinColor=getPresetVal('drop_pin_color')||'#991b1b';
-  window._wlPinColor=getPresetVal('wl_pin_color')||'#e11d48';
+  window._wlPinColor=getPresetVal('wl_pin_color')||'#0d9488';
   window._focusedPinColor=getPresetVal('focused_pin_color')||'#f59e0b';
   // Re-plot WL markers if color changed and map is ready
   if(mapObj && geocoder && window._wlPinColor !== prevWlColor && waitlist && waitlist.length){
