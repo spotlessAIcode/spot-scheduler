@@ -504,6 +504,10 @@ input[type=range]{width:72px;accent-color:var(--accent)}
     <div class="pib drop" id="sched-pin-drop">Drop pin</div>
     <div class="pib" id="sched-pin-clear">Clear all</div>
   </div>
+  <div id="day-chips-bar" style="display:none;padding:5px 12px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);display:none;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0">
+    <div id="day-chips" style="display:flex;gap:4px;flex-wrap:wrap;flex:1"></div>
+    <button onclick="clearAllDays()" style="font-size:9px;padding:2px 8px;border-radius:4px;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);cursor:pointer">Clear all</button>
+  </div>
   <div id="focus-banner" style="display:none;padding:6px 14px;background:#fff7ed;border-bottom:1.5px solid #fed7aa;display:none;align-items:center;gap:8px;flex-shrink:0">
     <div style="width:24px;height:24px;border-radius:50%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0" id="focus-avatar">?</div>
     <div style="flex:1;min-width:0">
@@ -865,6 +869,12 @@ let contactResults=[], selectedContact=null;
 let waitlist=[], focused=[], leads=[], tasks=[];
 let schedPins=[], wlPins=[], ctPins=[], leadsPins=[];
 let schedWLMarkers=[], schedWLVisible=false;
+// Multi-day layers — keyed by ISO date string
+let dayLayers={};         // {date: {markers:[], routeLines:[], calData:{}, color:''}}
+const DAY_COLORS=['#2563eb','#16a34a','#7c3aed','#ea580c','#0891b2','#be185d'];
+let _dayColorIdx=0;
+function getNextDayColor(){return DAY_COLORS[_dayColorIdx++%DAY_COLORS.length];}
+function getTodayColor(){return '#2563eb';}  // today always blue
 let contactSort='recent', contactPageToken=null, selectedContacts=new Set();
 let currentPhase='all', dragCard=null, dragSource=null;
 const queueMarkers={};
@@ -1103,17 +1113,27 @@ function geoCode(address,callback,name){
 
 // Flat bold circle pin — matches screenshot style
 function makeSVGPin(color,label,size=32){
-  const r=size/2;
-  const fs=label.length>2?Math.round(size*.28):Math.round(size*.36);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${r}" cy="${r}" r="${r}" fill="${color}"/><circle cx="${r}" cy="${r}" r="${r-2}" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/><text x="${r}" y="${r+fs*.38}" text-anchor="middle" fill="#fff" font-size="${fs}" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="800" letter-spacing="-0.5">${label}</text></svg>`;
+  return makeApptPin(color,label,false);
+}
+// Today appointments — teardrop pin
+function makeApptPin(color,label,isToday=true){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.89 14 22 14 22s14-12.11 14-22C28 6.27 21.73 0 14 0z" fill="${color}"/>${isToday?'':'<path d="M14 0C6.27 0 0 6.27 0 14c0 9.89 14 22 14 22s14-12.11 14-22C28 6.27 21.73 0 14 0z" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="3,2"/>'}<text x="14" y="15" text-anchor="middle" fill="#fff" font-size="9" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${label}</text></svg>`;
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
+// Future day appointments — circle with date number
+function makeFuturePin(color,dateNum){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="${color}" stroke="#fff" stroke-width="2"/><text x="14" y="14" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${dateNum}</text></svg>`;
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
+// House pin for waitlist
+function makeHousePin(color){
+  const c=color||(window._wlPinColor||'#1a1a1a');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32"><polygon points="14,2 2,13 5,13 5,28 23,28 23,13 26,13" fill="${c}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><rect x="10" y="18" width="8" height="10" fill="#fff" opacity=".3"/><rect x="11.5" y="9" width="5" height="5" fill="#fff" opacity=".5"/></svg>`;
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 // Small black circle for waitlist overlay on schedule map
 function makeWLPin(initials, ringColor){
-  const fill=ringColor||(window._wlPinColor||'#1a1a1a');
-  // Teardrop pin: wider at top, rounded bottom point
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.89 14 22 14 22s14-12.11 14-22C28 6.27 21.73 0 14 0z" fill="${fill}"/><text x="14" y="18" text-anchor="middle" fill="#fff" font-size="9" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${initials}</text></svg>`;
-  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+  return makeHousePin(ringColor);
 }
 function makePulsingPin(color){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="${color}" opacity=".9"/><circle cx="10" cy="10" r="9" fill="none" stroke="${color}" stroke-width="1.5" opacity=".4"/></svg>`;
@@ -1133,17 +1153,22 @@ function drawRouteLines(){
     // Collect coords in time order (already sorted by startDT in processCalendar)
     const coords=gd.appts.map(a=>a._latLng).filter(Boolean);
     if(coords.length<2)return;
+    const currYmd2=document.getElementById('date-inp').value;
+    const isTodayRoute=(currYmd2===toYMD(new Date()));
     const line=new google.maps.Polyline({
       path:coords,
       geodesic:false,
       strokeColor:g.color,
-      strokeOpacity:.85,
-      strokeWeight:2.5,
+      strokeOpacity:isTodayRoute?.85:.6,
+      strokeWeight:isTodayRoute?2.5:2,
+      icons:isTodayRoute?[]:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'12px'}],
       map:mapObj,
       zIndex:1
     });
     line._gid=g.id;
     routeLines.push(line);
+    const currYmd3=document.getElementById('date-inp').value;
+    const ly2=dayLayers[currYmd3];if(ly2)ly2.routeLines.push(line);
   });
 }
 function showRouteLines(gid,visible){
@@ -1230,7 +1255,7 @@ function onDateChange(){
   const v=document.getElementById('date-inp').value;
   if(v){buildWeekNav(parseLocal(v));loadDay();}
 }
-async function loadDay(){
+async function loadDay(addMode=false){
   const ymd=document.getElementById('date-inp').value;
   if(!ymd){setStatus('Select a date first','wn');return;}
   currentDate=parseLocal(ymd);
@@ -1246,6 +1271,14 @@ async function loadDay(){
 }
 function processCalendar(events,date){
   const dow=date.getDay();
+  const ymd=document.getElementById('date-inp').value;
+  // If this day already loaded, just toggle it off
+  if(dayLayers[ymd]){removeDayLayer(ymd);return;}
+  const isToday=(ymd===toYMD(new Date()));
+  const dayColor=isToday?getTodayColor():getNextDayColor();
+  // Store layer before loading
+  dayLayers[ymd]={markers:[],routeLines:[],color:dayColor,ymd};
+  addDayChip(ymd,dayColor);
   calendarData={};
   GROOMERS.forEach(g=>calendarData[g.id]={worksToday:groomerWorksDay(g,dow),appts:[],dogs:0,heavy:0,usedSlots:0});
   calendarData.UNASSIGNED={worksToday:true,appts:[],dogs:0,heavy:0,usedSlots:0};
@@ -1469,8 +1502,11 @@ function toggleApptPin(gid,apptIdx,btn){
 // ── MAP PINS ──────────────────────────────────────────────────
 function plotAllPins(){
   if(!mapObj||!geocoder)return;
-  markers.forEach(m=>{try{m.setMap(null);}catch(e){}});markers=[];
-  routeLines.forEach(l=>{try{l.setMap(null);}catch(e){}});routeLines=[];
+  // Only clear markers not managed by dayLayers
+  markers.filter(m=>!m._dayManaged).forEach(m=>{try{m.setMap(null);}catch(e){}});
+  markers=markers.filter(m=>m._dayManaged);
+  routeLines.filter(l=>!l._dayManaged).forEach(l=>{try{l.setMap(null);}catch(e){}});
+  routeLines=routeLines.filter(l=>l._dayManaged);
   // Also clear waitlist overlay so it re-renders fresh on next toggle
   schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedWLMarkers=[];
   if(schedWLVisible){schedWLVisible=false;const b=document.getElementById('sched-wl-toggle');if(b){b.style.background='';b.style.color='';b.style.borderColor='';}}
@@ -1483,8 +1519,18 @@ function plotAllPins(){
     gd.appts.forEach((a,i)=>{
       if(!a.address)return;
       pending++;
-      placePin(mapObj,a.address,g.color,String(i+1),a.customer,`${a.time}·${SIZE_LABELS[a.size]||a.size}`,bounds,markers,groomerVisible[g.id]!==false,g.id,(lat,lng)=>{
-        a._latLng={lat,lng};onAllPlaced();
+      const currYmd=document.getElementById('date-inp').value;
+      const isToday=(currYmd===toYMD(new Date()));
+      const dayDate=parseLocal(currYmd);
+      const dateNum=dayDate?dayDate.getDate():0;
+      const pinUrl=isToday
+        ?makeApptPin(g.color,String(i+1),true)
+        :makeFuturePin(g.color,String(dateNum));
+      placePinUrl(mapObj,a.address,pinUrl,a.customer,`${a.time}·${SIZE_LABELS[a.size]||a.size}`,bounds,markers,groomerVisible[g.id]!==false,g.id,(lat,lng)=>{
+        a._latLng={lat,lng};
+        // Store in dayLayer too
+        const ly=dayLayers[currYmd];if(ly)ly.markers.push(markers[markers.length-1]);
+        onAllPlaced();
       });
     });
   });
@@ -1501,6 +1547,25 @@ function plotAllPins(){
     return;
   }
   mapObj.fitBounds(bounds,{padding:40});
+}
+function placePinUrl(map,addr,pinUrl,name,detail,bounds,markerArr,visible,gid,onPlaced){
+  geoCode(addr,(lat,lng)=>{
+    const pos={lat,lng};
+    const isTeardrop=pinUrl.includes('36');
+    const sz=isTeardrop?[28,36]:[28,28];
+    const anchor=isTeardrop?[14,36]:[14,14];
+    const m=new google.maps.Marker({
+      position:pos,map:visible?(map||mapObj):null,
+      icon:{url:pinUrl,scaledSize:new google.maps.Size(sz[0],sz[1]),anchor:new google.maps.Point(anchor[0],anchor[1])},
+      title:name,zIndex:3
+    });
+    m._gid=gid||'';m._name=name;m._latLng={lat,lng};
+    const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:120px"><div style="font-weight:700;font-size:11px">${name}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${addr}</div></div>`});
+    m.addListener('click',()=>iw.open(map||mapObj,m));
+    markerArr.push(m);bounds.extend(pos);
+    try{(map||mapObj).fitBounds(bounds,{padding:40});}catch(e){}
+    if(onPlaced)onPlaced(lat,lng);
+  },name);
 }
 function placePin(map,addr,color,label,name,detail,bounds,markerArr,visible,gid,onPlaced){
   geoCode(addr,(lat,lng)=>{
@@ -3155,6 +3220,42 @@ function resetPresetsToDefaults(){
   applyPresets();
   if(document.getElementById('page-presets')?.classList.contains('active'))renderPresetsPage();
   toast('✓ Personal presets reset');
+}
+
+function addDayChip(ymd,color){
+  const bar=document.getElementById('day-chips-bar');
+  const chips=document.getElementById('day-chips');
+  if(!chips)return;
+  const d=parseLocal(ymd);
+  const label=d?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):ymd;
+  const chip=document.createElement('div');
+  chip.id='chip-'+ymd;
+  chip.style.cssText=`display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:5px;background:${color};color:#fff;font-size:10px;font-weight:500;cursor:pointer`;
+  chip.innerHTML=`${label} <span onclick="removeDayLayer('${ymd}')" style="opacity:.7;font-size:11px;cursor:pointer">✕</span>`;
+  chips.appendChild(chip);
+  if(bar)bar.style.display='flex';
+}
+function removeDayLayer(ymd){
+  const ly=dayLayers[ymd];
+  if(ly){
+    (ly.markers||[]).forEach(m=>{try{m.setMap(null);}catch(e){}});
+    (ly.routeLines||[]).forEach(l=>{try{l.setMap(null);}catch(e){}});
+    delete dayLayers[ymd];
+  }
+  const chip=document.getElementById('chip-'+ymd);if(chip)chip.remove();
+  const chips=document.getElementById('day-chips');
+  const bar=document.getElementById('day-chips-bar');
+  if(bar&&chips&&!chips.children.length)bar.style.display='none';
+}
+function clearAllDays(){
+  Object.keys(dayLayers).forEach(ymd=>removeDayLayer(ymd));
+  // Also clear the main markers/routeLines arrays
+  markers.forEach(m=>{try{m.setMap(null);}catch(e){}});markers=[];
+  routeLines.forEach(l=>{try{l.setMap(null);}catch(e){}});routeLines=[];
+  calendarData={};
+  _dayColorIdx=0;
+  renderGroomerCards({});
+  document.getElementById('day-sub').textContent='Pick a day to load groomer routes';
 }
 
 function bootApp(){
