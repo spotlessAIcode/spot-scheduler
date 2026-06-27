@@ -493,8 +493,6 @@ input[type=range]{width:72px;accent-color:var(--accent)}
 <div class="page active" id="page-schedule">
   <div class="topbar">
     <div style="flex:1"><div class="page-title">Schedule</div><div class="page-sub" id="day-sub">Pick a day to load groomer routes</div></div>
-    <button class="pill active" id="sched-view-cal">📅 Calendar</button>
-    <button class="pill" id="sched-view-map-btn">🗺 Map view</button>
     <button class="pill" id="sched-wl-toggle" style="display:none">⬤ Waitlist</button>
     <button class="pill" id="sched-focused-toggle" style="display:none">◆ Focused</button>
     <button class="btn btn-primary btn-sm" id="load-btn">Load day</button>
@@ -605,6 +603,15 @@ input[type=range]{width:72px;accent-color:var(--accent)}
       <div class="swd-filters" id="swd-filters"></div>
       <div class="swd-list" id="swd-list"></div>
       <div class="swd-foot">Eye syncs with Waitlist tab</div>
+    </div>
+    <!-- Focused drawer — shown when Focused toggle is ON -->
+    <div class="sched-wl-drawer" id="sched-focused-drawer" style="display:none">
+      <div class="swd-hd">
+        <span class="swd-title" style="color:#c2410c">Focused</span>
+        <span id="sfd-count" style="font-size:9px;color:#aaa"></span>
+      </div>
+      <div class="swd-list" id="sfd-list"></div>
+      <div class="swd-foot">Eye syncs with Focused tab</div>
     </div>
   </div>
   <div class="sched-footer">
@@ -1513,8 +1520,8 @@ function plotAllPins(){
   routeLines=routeLines.filter(l=>l._dayManaged);
   // Also clear waitlist overlay so it re-renders fresh on next toggle
   schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedWLMarkers=[];
-  if(schedWLVisible){schedWLVisible=false;const b=document.getElementById('sched-wl-toggle');if(b){b.style.background='';b.style.color='';b.style.borderColor='';}}
-  if(schedFocusedVisible){schedFocusedVisible=false;schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedFocusedMarkers=[];const bf=document.getElementById('sched-focused-toggle');if(bf){bf.style.background='';bf.style.color='';bf.style.borderColor='';}}
+  if(schedWLVisible){schedWLVisible=false;const b=document.getElementById('sched-wl-toggle');if(b){b.style.background='';b.style.color='';b.style.borderColor='';}const wd=document.getElementById('sched-wl-drawer');if(wd)wd.style.display='none';}
+  if(schedFocusedVisible){schedFocusedVisible=false;schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedFocusedMarkers=[];const bf=document.getElementById('sched-focused-toggle');if(bf){bf.style.background='';bf.style.color='';bf.style.borderColor='';}const fd=document.getElementById('sched-focused-drawer');if(fd)fd.style.display='none';}}
 
   const bounds=new google.maps.LatLngBounds();
   let pending=0;
@@ -1812,15 +1819,51 @@ function toggleSchedWaitlist(){
   toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
 }
 let schedFocusedMarkers=[], schedFocusedVisible=false;
+function renderSchedFocusedDrawer(){
+  const drawer=document.getElementById('sched-focused-drawer');
+  const listEl=document.getElementById('sfd-list');
+  const countEl=document.getElementById('sfd-count');
+  if(!drawer||!listEl)return;
+  const active=focused.filter(f=>f.status!=='ignored');
+  if(countEl)countEl.textContent=active.length+' customer'+(active.length!==1?'s':'');
+  const fc=window._focusedPinColor||'#f97316';
+  listEl.innerHTML=active.map(f=>{
+    const ini=(f.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+    const isHidden=f.schedVisible===false;
+    const petLine=[f.dog,f.breed,SIZE_LABELS[f.size]||f.size].filter(Boolean).join(' · ');
+    return`<div class="swd-row" style="border-left-color:${fc};${isHidden?'opacity:.4':''}" data-fname="${f.name}">
+      <div class="swd-av" style="background:${fc}">${ini}</div>
+      <div class="swd-info">
+        <div class="swd-name">${f.name}</div>
+        <div class="swd-pet">${petLine||'—'}</div>
+      </div>
+      <button class="swd-eye" data-action="sfd-toggle-eye" data-fname="${f.name}" style="color:${isHidden?'#ccc':fc}">${isHidden?'🙈':'👁'}</button>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('[data-action="sfd-toggle-eye"]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const name=btn.getAttribute('data-fname');
+      const f=focused.find(x=>x.name===name);
+      if(!f)return;
+      f.schedVisible=f.schedVisible===false?true:false;
+      const isOn=f.schedVisible!==false;
+      schedFocusedMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn?mapObj:null));
+      renderSchedFocusedDrawer();
+    });
+  });
+}
 function toggleSchedFocused(){
   const btn=document.getElementById('sched-focused-toggle');
+  const drawer=document.getElementById('sched-focused-drawer');
   schedFocusedVisible=!schedFocusedVisible;
-  const fc=window._focusedPinColor||'#f59e0b';
+  const fc=window._focusedPinColor||'#f97316';
   if(btn){
     btn.style.background=schedFocusedVisible?fc:'';
     btn.style.color=schedFocusedVisible?'#fff':'';
     btn.style.borderColor=schedFocusedVisible?fc:'';
   }
+  if(drawer)drawer.style.display=schedFocusedVisible?'flex':'none';
   if(!schedFocusedVisible){
     schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
     schedFocusedMarkers=[];
@@ -1837,8 +1880,9 @@ function toggleSchedFocused(){
     const pinUrl='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(fsvg);
     const placeFocusedPin=(lat,lng)=>{
       const pos={lat,lng};
+      const isHidden=f.schedVisible===false;
       const m=new google.maps.Marker({
-        position:pos,map:mapObj,
+        position:pos,map:isHidden?null:mapObj,
         icon:{url:pinUrl,scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)},
         title:f.name,zIndex:4
       });
@@ -1847,12 +1891,12 @@ function toggleSchedFocused(){
       const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${f.name}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${f.address||''}</div></div>`});
       m.addListener('click',()=>iw.open(mapObj,m));
       schedFocusedMarkers.push(m);
-      bounds.extend(pos);
-      if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}
+      if(!isHidden){bounds.extend(pos);if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}}
     };
     if(f.lat&&f.lng){placeFocusedPin(f.lat,f.lng);}
     else{geoCode(f.address,(lat,lng)=>{f.lat=lat;f.lng=lng;placeFocusedPin(lat,lng);},f.name);}
   });
+  renderSchedFocusedDrawer();
   toast(`Showing ${active.length} focused customer${active.length!==1?'s':''} on map`);
 }
 
@@ -2044,6 +2088,7 @@ async function loadWaitlistFromSheets(){
     const wlBtn=document.getElementById('sched-wl-toggle');
     const focBtn=document.getElementById('sched-focused-toggle');
     if(wlBtn&&waitlist.filter(w=>w.status!=='ignored'&&w.address).length>0)wlBtn.style.display='';
+    if(focBtn&&focused.filter(f=>f.address||(f.lat&&f.lng)).length>0)focBtn.style.display='';
     // Init or geocode waitlist map
     let ga=0;const tryG=()=>{
       if(mapObj&&geocoder)geocodeAllWaitlist();
@@ -2209,6 +2254,8 @@ async function loadFocusedFromSheets(){
       focused=res.rows.map(rowToFocusedEntry).filter(Boolean);
       renderFocused();
       if(sub)sub.textContent=focused.length+' customer'+(focused.length!==1?'s':'')+' in focus';
+      const focBtn=document.getElementById('sched-focused-toggle');
+      if(focBtn&&focused.filter(f=>f.address||(f.lat&&f.lng)).length>0)focBtn.style.display='';
     }else{
       if(sub)sub.textContent='Error loading';
     }
