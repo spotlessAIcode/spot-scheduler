@@ -1521,7 +1521,7 @@ function plotAllPins(){
   // Also clear waitlist overlay so it re-renders fresh on next toggle
   schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedWLMarkers=[];
   if(schedWLVisible){schedWLVisible=false;const b=document.getElementById('sched-wl-toggle');if(b){b.style.background='';b.style.color='';b.style.borderColor='';}const wd=document.getElementById('sched-wl-drawer');if(wd)wd.style.display='none';}
-  if(schedFocusedVisible){schedFocusedVisible=false;schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedFocusedMarkers=[];const bf=document.getElementById('sched-focused-toggle');if(bf){bf.style.background='';bf.style.color='';bf.style.borderColor='';}const fd=document.getElementById('sched-focused-drawer');if(fd)fd.style.display='none';}}
+  if(schedFocusedVisible){schedFocusedVisible=false;schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});schedFocusedMarkers=[];const bf=document.getElementById('sched-focused-toggle');if(bf){bf.style.background='';bf.style.color='';bf.style.borderColor='';}const fd=document.getElementById('sched-focused-drawer');if(fd)fd.style.display='none';}
 
   const bounds=new google.maps.LatLngBounds();
   let pending=0;
