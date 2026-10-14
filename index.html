@@ -1027,8 +1027,7 @@ window.onMapsReady=()=>{
   mapObj=new google.maps.Map(document.getElementById('map'),{center:{lat:38.96,lng:-94.67},zoom:11,mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
   geocoder=new google.maps.Geocoder();
   renderMapLegend();
-  // mapObj and mapObj init lazily when tabs are shown (can't init into hidden divs)
-  setTimeout(tryG,500);
+  // Map moves lazily into each tab's slot when shown (can't init into hidden divs)
 };
 
 function moveMapTo(slotId){
@@ -1766,6 +1765,76 @@ function toggleAllMWLPins(btn) {
   }
 }
 
+
+// ── PIN BAR ───────────────────────────────────────────────────
+function setupPinBar(prefix,_unused,pinsArr,extraAction){
+  const inp=document.getElementById(prefix+'-pin-inp');
+  const drop=document.getElementById(prefix+'-pin-drop');
+  const clear=document.getElementById(prefix+'-pin-clear');
+  const prompt=document.getElementById(prefix+'-pin-prompt');
+  const pinsRow=document.getElementById(prefix+'-saved-pins');
+  if(!inp||!drop)return;
+  drop.addEventListener('click',()=>{
+    const v=inp.value.trim();if(!v)return;
+    if(prompt){document.getElementById(prefix+'-pin-addr').textContent=v;prompt.style.display='flex';}
+    addSavedPin(prefix,v,window._dropPinColor||'#991b1b',pinsArr,pinsRow);
+    inp.value='';
+  });
+  if(clear)clear.addEventListener('click',()=>clearPins(prefix,pinsArr,pinsRow));
+  const justBtn=document.getElementById(prefix+'-pin-just');
+  if(justBtn)justBtn.addEventListener('click',()=>{if(prompt)prompt.style.display='none';});
+  if(extraAction){
+    const addBtn=document.getElementById(prefix+'-pin-add');
+    if(addBtn)addBtn.addEventListener('click',()=>{
+      if(prompt){const addr=document.getElementById(prefix+'-pin-addr').textContent;extraAction(addr);prompt.style.display='none';}
+    });
+  }
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')drop.click();});
+}
+function addSavedPin(prefix,addr,color,pinsArr,pinsRow){
+  if(pinsRow){
+    pinsRow.style.display='flex';
+    const sp=document.createElement('div');sp.className='sp';
+    sp.innerHTML='<div class="sp-dot" style="background:'+color+'"></div><span>'+(addr.length>28?addr.substring(0,28)+'\u2026':addr)+'</span><span class="sp-x">\xd7</span>';
+    sp.querySelector('.sp-x').addEventListener('click',()=>{
+      sp.remove();
+      if(pinsRow.querySelectorAll('.sp').length===0)pinsRow.style.display='none';
+    });
+    const clr=pinsRow.querySelector('.clr-all');
+    if(clr)pinsRow.insertBefore(sp,clr);else pinsRow.appendChild(sp);
+    if(!pinsRow.querySelector('.clr-all')){
+      const c=document.createElement('span');c.className='clr-all';c.textContent='Clear all';
+      c.addEventListener('click',()=>clearPins(prefix,pinsArr,pinsRow));pinsRow.appendChild(c);
+    }
+  }
+  if(geocoder||mapObj){
+    const doGeocode=(attempts)=>{
+      attempts=attempts||0;
+      if(attempts>30){toast('Map not ready — try again in a moment');return;}
+      const m2=getMapRef(prefix);
+      if(!m2||!geocoder){setTimeout(()=>doGeocode(attempts+1),300);return;}
+      geoCode(addr,(lat,lng)=>{
+        const m=new google.maps.Marker({
+          position:{lat,lng},map:m2,
+          icon:{url:makeSVGPin(window._dropPinColor||'#991b1b','●',28),scaledSize:new google.maps.Size(28,28),anchor:new google.maps.Point(14,14)},
+          title:addr,zIndex:5
+        });
+        m._gid='pin';m._name=addr;
+        pinsArr.push(m);
+        m2.panTo({lat,lng});
+      },addr);
+    };
+    doGeocode(0);
+  } else {
+    toast('Paste your Maps API key first to enable pins');
+  }
+}
+function clearPins(prefix,pinsArr,pinsRow){
+  pinsArr.forEach(m=>{try{m.setMap(null);}catch(e){}});pinsArr.length=0;
+  if(pinsRow){pinsRow.innerHTML='';pinsRow.style.display='none';}
+  const prompt=document.getElementById(prefix+'-pin-prompt');
+  if(prompt)prompt.style.display='none';
+}
 
 // ── CONTACTS SEARCH (SCHEDULE) ────────────────────────────────
 async function searchContacts(){
