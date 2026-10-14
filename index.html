@@ -7,10 +7,10 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 :root{
-  --accent:var(--accent);
-  --accent-light:var(--accent-light);
-  --accent-border:var(--accent-border);
-  --accent-dark:var(--accent-dark);
+  --accent:#f97316;
+  --accent-light:#fff7ed;
+  --accent-border:#fed7aa;
+  --accent-dark:#ea6c10;
   --drop-pin:#991b1b;
   --font-scale:1;
   --font-family:'Inter',system-ui,sans-serif;
@@ -2556,7 +2556,7 @@ function bindAllHandlers(){
     'sched-wl-toggle':()=>toggleSchedWaitlist(),
     'sched-focused-toggle':()=>toggleSchedFocused(),
     'search-btn':()=>searchContacts(),
-    'migrate-btn':()=>migrateLocalToSheets(),
+    'migrate-btn':()=>toast('Migration no longer available'),
     'contacts-search-btn':()=>loadContactsSearch(),
     'contact-import-btn':()=>importContactFromPaste(),
     'contacts-load-more':()=>loadMoreContacts(),
@@ -3015,7 +3015,6 @@ function bootApp(){
   document.getElementById('date-inp').value=toYMD(today);
   buildWeekNav(today);
   loadGroomers();
-  loadWaitlistFromSheets();
   loadFocusedFromSheets();
   loadWeights();
   loadPresets();
@@ -3129,6 +3128,8 @@ function updateFocusDistances(){
 }
 document.addEventListener('DOMContentLoaded',()=>{
   bindAllHandlers();
+  loadLocalPresets();
+  applyPresets();
   // Show login screen by default — bootApp() fires after successful sign-in
 });
 
