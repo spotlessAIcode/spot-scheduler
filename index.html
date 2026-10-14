@@ -603,7 +603,7 @@ input[type=range]{width:72px;accent-color:var(--accent)}
       </div>
       <div class="swd-filters" id="swd-filters"></div>
       <div class="swd-list" id="swd-list"></div>
-      <div class="swd-foot">Eye syncs with Waitlist tab</div>
+      <div class="swd-foot">Live from MoeGo · eye toggles pin</div>
     </div>
     <!-- Focused drawer — shown when Focused toggle is ON -->
     <div class="sched-wl-drawer" id="sched-focused-drawer" style="display:none">
@@ -1747,47 +1747,33 @@ function renderSchedWLDrawer(){
   const filtersEl=document.getElementById('swd-filters');
   const countEl=document.getElementById('swd-count');
   if(!drawer||!listEl)return;
-  const active=waitlist.filter(w=>w.status!=='ignored');
-  if(countEl)countEl.textContent=`${active.length} active`;
-  // Status filter pills
-  const statCounts={ready:0,warm:0,hold:0,vip:0,none:0};
-  active.forEach(w=>{const s=w.wlStatus||'';statCounts[s||'none']=(statCounts[s||'none']||0)+1;});
-  if(filtersEl){
-    filtersEl.innerHTML=`<div class="pill${_swdFilter===''?' active':''}" style="font-size:9px;padding:2px 7px;cursor:pointer" onclick="setSwdFilter('')">All</div>`+
-      Object.entries({ready:'Ready',warm:'Warm',hold:'Hold',vip:'VIP'})
-        .filter(([k])=>statCounts[k]>0)
-        .map(([k,lbl])=>`<div class="wl-status-btn wl-status-${k}${_swdFilter===k?' ':''}" style="cursor:pointer" onclick="setSwdFilter('${k}')">${lbl} ${statCounts[k]}</div>`)
-        .join('');
-  }
-  const filtered=active.filter(w=>!_swdFilter||(w.wlStatus||'')=== _swdFilter);
-  listEl.innerHTML=filtered.map((w,i)=>{
-    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    const st=w.wlStatus||'';
-    const stClass=st?`status-${st}`:'';
-    const isHidden=w.mapVisible===false;
-    const eyeColor=st?WL_STATUS_COLORS[st]:'#aaa';
-    return`<div class="swd-row ${stClass}${isHidden?' hidden-pin':''}" data-action="swd-toggle" data-name="${w.name}">
-      <div class="swd-av">${ini}</div>
+  const active=mwlData.filter(w=>w.isAvailable);
+  if(countEl)countEl.textContent=active.length+' active';
+  if(filtersEl)filtersEl.innerHTML='';
+  const pinColor='#7c3aed';
+  listEl.innerHTML=active.map((w,i)=>{
+    const c=w.customerInfo||{};
+    const ini=((c.firstName||'')[0]||'')+((c.lastName||'')[0]||'');
+    const pets=(w.petList||[]).map(p=>p.petName).join(', ')||'—';
+    const isHidden=w.schedVisible===false;
+    return`<div class="swd-row${isHidden?' hidden-pin':''}" data-action="swd-toggle" data-mwlidx="${i}">
+      <div class="swd-av" style="background:${pinColor}">${ini}</div>
       <div class="swd-info">
-        <div class="swd-name">${w.name}</div>
-        <div class="swd-pet">${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size}</div>
+        <div class="swd-name">${c.firstName||''} ${c.lastName||''}</div>
+        <div class="swd-pet">${pets}</div>
       </div>
-      <button class="swd-eye" data-action="swd-toggle-eye" data-name="${w.name}" style="color:${isHidden?'#ccc':eyeColor}">${isHidden?'🙈':'👁'}</button>
+      <button class="swd-eye" data-action="swd-toggle-eye" data-mwlidx="${i}" style="color:${isHidden?'#ccc':pinColor}">${isHidden?'🙈':'👁'}</button>
     </div>`;
   }).join('');
-  // Bind swd-toggle-eye
   listEl.querySelectorAll('[data-action="swd-toggle-eye"]').forEach(btn=>{
     btn.addEventListener('click',e=>{
       e.stopPropagation();
-      const name=btn.getAttribute('data-name');
-      const w=waitlist.find(wl=>wl.name===name);
-      if(!w)return;
-      w.mapVisible=w.mapVisible===false?true:false;
-      const isOn=w.mapVisible!==false;
-      // Toggle on schedWLMarkers
-      schedWLMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn?mapObj:null));
-      // Also sync wlMarkers
-      wlMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn&&document.getElementById('page-waitlist')?.classList.contains('active')?mapObj:null));
+      const idx=parseInt(btn.getAttribute('data-mwlidx'));
+      const w=active[idx];if(!w)return;
+      w.schedVisible=w.schedVisible===false?true:false;
+      const isOn=w.schedVisible!==false;
+      const name=(w.customerInfo?.firstName||'')+' '+(w.customerInfo?.lastName||'');
+      schedWLMarkers.filter(m=>m._mwlName===name).forEach(m=>m.setMap(isOn?mapObj:null));
       renderSchedWLDrawer();
     });
   });
@@ -1795,15 +1781,16 @@ function renderSchedWLDrawer(){
 let _swdFilter='';
 function setSwdFilter(f){_swdFilter=f;renderSchedWLDrawer();}
 
-// Updated toggleSchedWaitlist — shows drawer + pins
+// toggleSchedWaitlist — now uses MoeGo waitlist (mwlData) with direct lat/lng
 function toggleSchedWaitlist(){
   const btn=document.getElementById('sched-wl-toggle');
   const drawer=document.getElementById('sched-wl-drawer');
   schedWLVisible=!schedWLVisible;
+  const pinColor='#7c3aed';
   if(btn){
-    btn.style.background=schedWLVisible?'#1a1a1a':'';
+    btn.style.background=schedWLVisible?pinColor:'';
     btn.style.color=schedWLVisible?'#fff':'';
-    btn.style.borderColor=schedWLVisible?'#1a1a1a':'';
+    btn.style.borderColor=schedWLVisible?pinColor:'';
   }
   if(drawer)drawer.style.display=schedWLVisible?'flex':'none';
   if(!schedWLVisible){
@@ -1811,35 +1798,57 @@ function toggleSchedWaitlist(){
     schedWLMarkers=[];
     return;
   }
-  if(!mapObj||!geocoder){toast('Map not ready yet');schedWLVisible=false;return;}
-  const active=waitlist.filter(w=>w.status!=='ignored'&&w.address);
-  if(!active.length){toast('No active waitlist entries with addresses');schedWLVisible=false;return;}
-  const bounds=new google.maps.LatLngBounds();
-  markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
-  active.forEach(w=>{
-    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    const ringColor=wlStatusRingColor(w.wlStatus||'');
-    geoCode(w.address,(lat,lng)=>{
-      const pos={lat,lng};
-      const isHidden=w.mapVisible===false;
+  if(!mapObj){toast('Map not ready yet');schedWLVisible=false;return;}
+  // If MoeGo data not yet loaded, fetch it first then plot
+  const doPlot=()=>{
+    const active=mwlData.filter(w=>w.isAvailable&&w.waitlistAddress?.lat);
+    if(!active.length){toast('No MoeGo waitlist entries with addresses');schedWLVisible=false;if(drawer)drawer.style.display='none';return;}
+    const bounds=new google.maps.LatLngBounds();
+    markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
+    active.forEach(w=>{
+      const c=w.customerInfo||{};
+      const name=(c.firstName||'')+' '+(c.lastName||'');
+      const ini=(c.firstName||'?')[0].toUpperCase()+(c.lastName||'?')[0].toUpperCase();
+      const addr=w.waitlistAddress;
+      const pos={lat:parseFloat(addr.lat),lng:parseFloat(addr.lng)};
+      const isHidden=w.schedVisible===false;
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${pinColor}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${pinColor}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini}</text></svg>`;
+      const pinUrl='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
       const m=new google.maps.Marker({
-        position:pos,
-        map:isHidden?null:mapObj,
-        icon:{url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)},
-        title:w.name,zIndex:2
+        position:pos,map:isHidden?null:mapObj,
+        icon:{url:pinUrl,scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)},
+        title:name,zIndex:2
       });
-      m._gid='schedWL';m._name=w.name;
-      const detail=`${w.dog||'Dog'} · ${SIZE_LABELS[w.size]||w.size} · ${w.timePref||'Flexible'}`;
-      const statusLabel=w.wlStatus?` · <span style="font-weight:700;color:${ringColor}">${WL_STATUS_LABELS[w.wlStatus]}</span>`:'';
-      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${w.name}${statusLabel}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${w.address}</div></div>`});
+      m._gid='schedWL';m._mwlName=name;
+      const pets=(w.petList||[]).map(p=>p.petName).join(', ');
+      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${name}</div><div style="font-size:10px;color:#666">${pets}</div><div style="font-size:9px;color:#aaa">$${Math.round(w.price||0)} · ${addr.address1}, ${addr.city}</div></div>`});
       m.addListener('click',()=>iw.open(mapObj,m));
       schedWLMarkers.push(m);
-      bounds.extend(pos);
-      if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}
-    },w.name);
-  });
-  renderSchedWLDrawer();
-  toast(`Showing ${active.length} waitlist customer${active.length!==1?'s':''} on map`);
+      if(!isHidden){bounds.extend(pos);if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}}
+    });
+    renderSchedWLDrawer();
+    toast(`Showing ${active.length} MoeGo waitlist customer${active.length!==1?'s':''} on map`);
+  };
+  if(mwlData.length){
+    doPlot();
+  } else {
+    // Fetch MoeGo WL via extension bridge then plot
+    const countEl=document.getElementById('swd-count');
+    if(countEl)countEl.textContent='Loading…';
+    const onResult=e=>{
+      if(e.data?.type==='SPOTLESS_MOEGO_WL_RESULT'){
+        window.removeEventListener('message',onResult);
+        if(e.data.list)mwlData=e.data.list;
+        doPlot();
+      }
+    };
+    window.addEventListener('message',onResult);
+    window.postMessage({type:'SPOTLESS_GET_MOEGO_WL'},'*');
+    setTimeout(()=>{
+      window.removeEventListener('message',onResult);
+      if(!mwlData.length){toast('Extension not responding — open MoeGo tab first');schedWLVisible=false;if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}if(drawer)drawer.style.display='none';}
+    },8000);
+  }
 }
 let schedFocusedMarkers=[], schedFocusedVisible=false;
 function renderSchedFocusedDrawer(){
@@ -2020,6 +2029,9 @@ window.addEventListener('message', e => {
     if (sub) sub.textContent = `${mwlData.filter(w=>w.isAvailable).length} active · live from MoeGo`;
     renderMoegoWaitlist();
     if (mwlPinsVisible) { clearMWLMarkers(); plotMWLMarkers(); }
+    // Also show the schedule tab Waitlist toggle now that data is available
+    const wlBtn = document.getElementById('sched-wl-toggle');
+    if (wlBtn && mwlData.filter(w=>w.isAvailable&&w.waitlistAddress?.lat).length > 0) wlBtn.style.display = '';
   }
 });
 
