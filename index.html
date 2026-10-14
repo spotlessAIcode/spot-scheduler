@@ -462,7 +462,6 @@ input[type=range]{width:72px;accent-color:var(--accent)}
   <div class="nav-links">
     <div class="nav-section">Scheduling</div>
     <div class="nl active" id="nl-schedule" onclick="showPage('schedule')"><span class="nl-icon">📅</span>Schedule</div>
-    <div class="nl" id="nl-waitlist" onclick="showPage('waitlist')"><span class="nl-icon">📋</span>Waitlist</div>
     <div class="nl" id="nl-focused" onclick="showPage('focused')"><span class="nl-icon">📍</span>Focused</div>
     <div class="nl" id="nl-mwaitlist" onclick="showPage('mwaitlist')"><span class="nl-icon">🐾</span>MoeGo WL</div>
     <div class="nav-section">CRM</div>
@@ -617,43 +616,6 @@ input[type=range]{width:72px;accent-color:var(--accent)}
   </div>
   <div class="sched-footer">
     <div class="fsumm" id="footer-summ">Load a day to begin</div>
-  </div>
-</div>
-
-<!-- WAITLIST PAGE -->
-<div class="page" id="page-waitlist">
-  <div class="topbar">
-    <div style="flex:1"><div class="page-title">Waitlist</div><div class="page-sub" id="wl-sub">Loading…</div></div>
-    <button class="pill" id="wl-pins-toggle" onclick="toggleAllWLPins(this)">📍 Show map</button>
-    <button class="pill" id="wl-refresh-btn">↻ Refresh</button>
-    <button class="btn btn-primary btn-sm" id="add-wl-btn">+ Add customer</button>
-  </div>
-  <div class="pin-bar">
-    <span style="color:#f97316;font-size:12px">📍</span>
-    <input id="wl-pin-inp" placeholder="Drop a pin — paste any address…">
-    <div class="pib drop" id="wl-pin-drop">Drop pin</div>
-    <div class="pib" id="wl-pin-clear">Clear all</div>
-  </div>
-  <div id="wl-pin-prompt" style="display:none" class="pin-prompt">
-    <span>📍</span>
-    <div class="pin-prompt-addr" id="wl-pin-addr"></div>
-    <button class="pp-btn pp-add" id="wl-pin-add">+ Add to waitlist</button>
-    <button class="pp-btn pp-just" id="wl-pin-just">Just pin ✕</button>
-  </div>
-  <div class="saved-pins" id="wl-saved-pins" style="display:none"></div>
-  <div class="wl-layout">
-    <div class="wl-left" id="wl-left">
-      <div id="wl-add-form"></div>
-      <div id="wl-pin-form"></div>
-      <div id="wl-cards"></div>
-    </div>
-    <div class="map-wrap" id="wl-map-wrap" data-map-slot="wl">
-      <div class="map-slot-target" id="wl-map-slot" style="width:100%;height:100%"></div>
-      <div class="map-legend" id="wl-map-legend" style="display:none;position:absolute;bottom:10px;right:10px;background:rgba(255,255,255,.95);border-radius:7px;border:1px solid #e8e8e4;padding:6px 8px;font-size:9px;z-index:10">
-        <div class="leg-row"><div class="leg-dot" style="background:#1a1a1a"></div>Waitlist pin</div>
-        <div class="leg-row"><div class="leg-dot" style="background:#06b6d4"></div>Dropped pin</div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -892,11 +854,11 @@ let GROOMERS=[], STAGES=[], SUBSTAGES=[], TEMPLATES=[], RULES=[];
 let mapObj=null, geocoder=null, dirRenderer={};
 let mapsLoaded=false, sheetsReady=false;
 let groomerState={}, groomerOverrides={}, groomerVisible={};
-let markers=[], wlMarkers=[], ctMarkers=[];
+let markers=[], ctMarkers=[];
 let queue=[], calendarData={}, currentDate=null;
 let contactResults=[], selectedContact=null;
-let waitlist=[], focused=[], leads=[], tasks=[];
-let schedPins=[], wlPins=[], ctPins=[], leadsPins=[];
+let focused=[], leads=[], tasks=[];
+let schedPins=[], ctPins=[], leadsPins=[];
 let schedWLMarkers=[], schedWLVisible=false;
 // Multi-day layers — keyed by ISO date string
 let dayLayers={};         // {date: {markers:[], routeLines:[], calData:{}, color:''}}
@@ -910,31 +872,10 @@ const queueMarkers={};
 
 const WL_STATUSES = ['','ready','warm','hold','vip'];
 const WL_STATUS_LABELS = {'':`No status`,'ready':'Ready','warm':'Warm','hold':'Hold','vip':'VIP'};
-const WL_STATUS_COLORS = {'':`#9ca3af`,'ready':'#22c55e','warm':'#f59e0b','hold':'#ef4444','vip':'#3b82f6'};
-function wlStatusClass(s){return s?`wl-status-${s}`:'wl-status-none';}
-function wlStatusRingColor(s){
-  if(s && WL_STATUS_COLORS[s]) return WL_STATUS_COLORS[s];
-  return window._wlPinColor||'#0d9488'; // teal default for no-status
-}
-function cycleWLStatus(idx){
-  const w=waitlist[idx];if(!w)return;
-  const cur=WL_STATUSES.indexOf(w.wlStatus||'');
-  w.wlStatus=WL_STATUSES[(cur+1)%WL_STATUSES.length];
-  saveWaitlistToSheets();
-  renderWaitlist();
-  renderSchedWLDrawer();
-  // Update map pin ring color if visible
-  const m=wlMarkers.find(mk=>mk._name===w.name);
-  if(m)m.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)});
-  const sm=schedWLMarkers.find(mk=>mk._name===w.name);
-  if(sm)sm.setIcon({url:makeWLPin((w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(),wlStatusRingColor(w.wlStatus)),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)});
-}
 function loadPersistedKeys(){
   // Keys (Maps, Anthropic) are now fetched from Script Properties via getConfig()
   // after auth — never stored in localStorage or hardcoded in HTML.
   // Only non-sensitive state is persisted locally.
-  const wl=localStorage.getItem('spotless_waitlist');
-  if(wl){try{waitlist=JSON.parse(wl);}catch(e){}}
 }
 function showKeySaved(id){const el=document.getElementById(id);if(el){el.textContent='✓';el.style.color='#1d9e75';}}
 // Stubs kept so any lingering references don't error
@@ -1087,7 +1028,6 @@ window.onMapsReady=()=>{
   geocoder=new google.maps.Geocoder();
   renderMapLegend();
   // mapObj and mapObj init lazily when tabs are shown (can't init into hidden divs)
-  let ga=0;const tryG=()=>{if(waitlist.length>0)initWLMap();else if(ga++<30)setTimeout(tryG,500);};
   setTimeout(tryG,500);
 };
 
@@ -1098,16 +1038,6 @@ function moveMapTo(slotId){
   if(!slot||!mapDiv||mapDiv.parentElement===slot)return;
   slot.appendChild(mapDiv);
   try{google.maps.event.trigger(mapObj,'resize');}catch(e){}
-}
-
-function initWLMap(){
-  if(!mapObj||!geocoder)return;
-  setTimeout(()=>{
-    const wph=document.getElementById('wl-map-ph');if(wph)wph.style.display='none';
-    mapObj=new google.maps.Map(document.getElementById('wl-map'),{center:{lat:38.96,lng:-94.67},zoom:11,mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
-    renderWLMapLegend();
-    if(waitlist.length)geocodeAllWaitlist();
-  },150);
 }
 
 function initCTMap(){
@@ -1164,9 +1094,6 @@ function makeHousePin(color,initials=''){
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 // Small black circle for waitlist overlay on schedule map
-function makeWLPin(initials, ringColor){
-  return makeHousePin(ringColor, initials);
-}
 function makePulsingPin(color){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="6" fill="${color}" opacity=".9"/><circle cx="10" cy="10" r="9" fill="none" stroke="${color}" stroke-width="1.5" opacity=".4"/></svg>`;
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
@@ -1215,13 +1142,12 @@ function setTabMarkersVisible(tabId){
   // Map tab id → the marker arrays that BELONG to that tab
   const owned={
     schedule:   ()=>markers.concat(schedPins).concat(schedWLMarkers),
-    waitlist:   ()=>wlMarkers.concat(wlPins),
     contacts:   ()=>ctMarkers.concat(ctPins),
     leads:      ()=>leadsPins,
     mwaitlist:  ()=>mwlMarkers
   };
   // Hide all managed markers
-  ['schedule','waitlist','contacts','leads','mwaitlist'].forEach(id=>{
+  ['schedule','contacts','leads','mwaitlist'].forEach(id=>{
     const arr=(owned[id]&&owned[id]())||[];
     const show=(id===tabId);
     arr.forEach(m=>{try{m.setMap(show?mapObj:null);}catch(e){}});
@@ -1241,10 +1167,6 @@ function showPage(id){
   if(id==='focused'){
     if(mapObj)setTimeout(()=>{const slot=document.getElementById('focused-map-slot');if(slot&&!slot._mapMoved){mapObj.getDiv().parentNode&&slot.appendChild(mapObj.getDiv());slot._mapMoved=true;}},100);
     loadFocusedFromSheets();
-  }
-  if(id==='waitlist'){
-    moveMapTo('wl-map-slot');
-    if(mapObj&&geocoder&&waitlist.length)geocodeAllWaitlist();
   }
   if(id==='mwaitlist'){ moveMapTo('mwl-map-slot'); loadMoegoWaitlist(); }
   if(id==='contacts') moveMapTo('ct-map-slot');
@@ -1704,310 +1626,6 @@ function renderMapToggles(){
   // Legacy stub — staff panel handles this now, but keep so existing calls don't error
   updateStaffPanel();
 }
-function renderWLMapLegend(){
-  const el=document.getElementById('wl-map-legend');if(!el)return;
-  el.style.display='block';
-}
-let wlPinsVisible=true;
-function toggleAllWLPins(btn){
-  wlPinsVisible=!wlPinsVisible;
-  const wlTabActive=document.getElementById('page-waitlist')?.classList.contains('active');
-  wlMarkers.forEach(m=>{try{m.setMap(wlPinsVisible&&wlTabActive?mapObj:null);}catch(e){}});
-  if(btn){
-    btn.style.background=wlPinsVisible?'':'#f0f0ec';
-    btn.style.color=wlPinsVisible?'':'#aaa';
-    btn.textContent=wlPinsVisible?'👁 Pins':'👁 Hidden';
-  }
-  // Also sync individual eye buttons on cards
-  waitlist.forEach(w=>w.mapVisible=wlPinsVisible);
-  renderWaitlist();
-}
-function geocodeAllWaitlist(){
-  if(!mapObj||!geocoder)return;
-  const wlTabActive=document.getElementById('page-waitlist')?.classList.contains('active');
-  wlMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});wlMarkers=[];
-  const bounds=new google.maps.LatLngBounds();
-  waitlist.filter(w=>w.status!=='ignored'&&w.address).forEach((w,i)=>{
-    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    const ringColor=wlStatusRingColor(w.wlStatus||'');
-    placePin(mapObj,w.address,ringColor,ini,w.name,`${w.dog||'Dog'}·${SIZE_LABELS[w.size]||w.size}`,bounds,wlMarkers,wlTabActive,'wl',(lat,lng)=>{
-      // Write lat/lng back to entry if not already set
-      if(!w.lat||!w.lng){
-        w.lat=lat;w.lng=lng;
-        clearTimeout(_wlGeoSaveTimer);
-        _wlGeoSaveTimer=setTimeout(()=>saveWaitlistToSheets(),2000);
-      }
-    });
-  });
-}
-
-function renderSchedWLDrawer(){
-  const drawer=document.getElementById('sched-wl-drawer');
-  const listEl=document.getElementById('swd-list');
-  const filtersEl=document.getElementById('swd-filters');
-  const countEl=document.getElementById('swd-count');
-  if(!drawer||!listEl)return;
-  const active=mwlData.filter(w=>w.isAvailable);
-  if(countEl)countEl.textContent=active.length+' active';
-  if(filtersEl)filtersEl.innerHTML='';
-  const pinColor='#7c3aed';
-  listEl.innerHTML=active.map((w,i)=>{
-    const c=w.customerInfo||{};
-    const ini=((c.firstName||'')[0]||'')+((c.lastName||'')[0]||'');
-    const pets=(w.petList||[]).map(p=>p.petName).join(', ')||'—';
-    const isHidden=w.schedVisible===false;
-    return`<div class="swd-row${isHidden?' hidden-pin':''}" data-action="swd-toggle" data-mwlidx="${i}">
-      <div class="swd-av" style="background:${pinColor}">${ini}</div>
-      <div class="swd-info">
-        <div class="swd-name">${c.firstName||''} ${c.lastName||''}</div>
-        <div class="swd-pet">${pets}</div>
-      </div>
-      <button class="swd-eye" data-action="swd-toggle-eye" data-mwlidx="${i}" style="color:${isHidden?'#ccc':pinColor}">${isHidden?'🙈':'👁'}</button>
-    </div>`;
-  }).join('');
-  listEl.querySelectorAll('[data-action="swd-toggle-eye"]').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      const idx=parseInt(btn.getAttribute('data-mwlidx'));
-      const w=active[idx];if(!w)return;
-      w.schedVisible=w.schedVisible===false?true:false;
-      const isOn=w.schedVisible!==false;
-      const name=(w.customerInfo?.firstName||'')+' '+(w.customerInfo?.lastName||'');
-      schedWLMarkers.filter(m=>m._mwlName===name).forEach(m=>m.setMap(isOn?mapObj:null));
-      renderSchedWLDrawer();
-    });
-  });
-}
-let _swdFilter='';
-function setSwdFilter(f){_swdFilter=f;renderSchedWLDrawer();}
-
-// toggleSchedWaitlist — now uses MoeGo waitlist (mwlData) with direct lat/lng
-function toggleSchedWaitlist(){
-  const btn=document.getElementById('sched-wl-toggle');
-  const drawer=document.getElementById('sched-wl-drawer');
-  schedWLVisible=!schedWLVisible;
-  const pinColor='#7c3aed';
-  if(btn){
-    btn.style.background=schedWLVisible?pinColor:'';
-    btn.style.color=schedWLVisible?'#fff':'';
-    btn.style.borderColor=schedWLVisible?pinColor:'';
-  }
-  if(drawer)drawer.style.display=schedWLVisible?'flex':'none';
-  if(!schedWLVisible){
-    schedWLMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
-    schedWLMarkers=[];
-    return;
-  }
-  if(!mapObj){toast('Map not ready yet');schedWLVisible=false;return;}
-  // If MoeGo data not yet loaded, fetch it first then plot
-  const doPlot=()=>{
-    const active=mwlData.filter(w=>w.isAvailable&&w.waitlistAddress?.lat);
-    if(!active.length){toast('No MoeGo waitlist entries with addresses');schedWLVisible=false;if(drawer)drawer.style.display='none';return;}
-    const bounds=new google.maps.LatLngBounds();
-    markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
-    active.forEach(w=>{
-      const c=w.customerInfo||{};
-      const name=(c.firstName||'')+' '+(c.lastName||'');
-      const ini=(c.firstName||'?')[0].toUpperCase()+(c.lastName||'?')[0].toUpperCase();
-      const addr=w.waitlistAddress;
-      const pos={lat:parseFloat(addr.lat),lng:parseFloat(addr.lng)};
-      const isHidden=w.schedVisible===false;
-      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${pinColor}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${pinColor}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini}</text></svg>`;
-      const pinUrl='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
-      const m=new google.maps.Marker({
-        position:pos,map:isHidden?null:mapObj,
-        icon:{url:pinUrl,scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)},
-        title:name,zIndex:2
-      });
-      m._gid='schedWL';m._mwlName=name;
-      const pets=(w.petList||[]).map(p=>p.petName).join(', ');
-      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${name}</div><div style="font-size:10px;color:#666">${pets}</div><div style="font-size:9px;color:#aaa">$${Math.round(w.price||0)} · ${addr.address1}, ${addr.city}</div></div>`});
-      m.addListener('click',()=>iw.open(mapObj,m));
-      schedWLMarkers.push(m);
-      if(!isHidden){bounds.extend(pos);if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}}
-    });
-    renderSchedWLDrawer();
-    toast(`Showing ${active.length} MoeGo waitlist customer${active.length!==1?'s':''} on map`);
-  };
-  if(mwlData.length){
-    doPlot();
-  } else {
-    // Fetch MoeGo WL via extension bridge then plot
-    const countEl=document.getElementById('swd-count');
-    if(countEl)countEl.textContent='Loading…';
-    const onResult=e=>{
-      if(e.data?.type==='SPOTLESS_MOEGO_WL_RESULT'){
-        window.removeEventListener('message',onResult);
-        if(e.data.list)mwlData=e.data.list;
-        doPlot();
-      }
-    };
-    window.addEventListener('message',onResult);
-    window.postMessage({type:'SPOTLESS_GET_MOEGO_WL'},'*');
-    setTimeout(()=>{
-      window.removeEventListener('message',onResult);
-      if(!mwlData.length){toast('Extension not responding — open MoeGo tab first');schedWLVisible=false;if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}if(drawer)drawer.style.display='none';}
-    },8000);
-  }
-}
-let schedFocusedMarkers=[], schedFocusedVisible=false;
-function renderSchedFocusedDrawer(){
-  const drawer=document.getElementById('sched-focused-drawer');
-  const listEl=document.getElementById('sfd-list');
-  const countEl=document.getElementById('sfd-count');
-  if(!drawer||!listEl)return;
-  const active=focused.filter(f=>f.status!=='ignored');
-  if(countEl)countEl.textContent=active.length+' customer'+(active.length!==1?'s':'');
-  const fc=window._focusedPinColor||'#f97316';
-  listEl.innerHTML=active.map(f=>{
-    const ini=(f.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
-    const isHidden=f.schedVisible===false;
-    const petLine=[f.dog,f.breed,SIZE_LABELS[f.size]||f.size].filter(Boolean).join(' · ');
-    return`<div class="swd-row" style="border-left-color:${fc};${isHidden?'opacity:.4':''}" data-fname="${f.name}">
-      <div class="swd-av" style="background:${fc}">${ini}</div>
-      <div class="swd-info">
-        <div class="swd-name">${f.name}</div>
-        <div class="swd-pet">${petLine||'—'}</div>
-      </div>
-      <button class="swd-eye" data-action="sfd-toggle-eye" data-fname="${f.name}" style="color:${isHidden?'#ccc':fc}">${isHidden?'🙈':'👁'}</button>
-    </div>`;
-  }).join('');
-  listEl.querySelectorAll('[data-action="sfd-toggle-eye"]').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      const name=btn.getAttribute('data-fname');
-      const f=focused.find(x=>x.name===name);
-      if(!f)return;
-      f.schedVisible=f.schedVisible===false?true:false;
-      const isOn=f.schedVisible!==false;
-      schedFocusedMarkers.filter(m=>m._name===name).forEach(m=>m.setMap(isOn?mapObj:null));
-      renderSchedFocusedDrawer();
-    });
-  });
-}
-function toggleSchedFocused(){
-  const btn=document.getElementById('sched-focused-toggle');
-  const drawer=document.getElementById('sched-focused-drawer');
-  schedFocusedVisible=!schedFocusedVisible;
-  const fc=window._focusedPinColor||'#f97316';
-  if(btn){
-    btn.style.background=schedFocusedVisible?fc:'';
-    btn.style.color=schedFocusedVisible?'#fff':'';
-    btn.style.borderColor=schedFocusedVisible?fc:'';
-  }
-  if(drawer)drawer.style.display=schedFocusedVisible?'flex':'none';
-  if(!schedFocusedVisible){
-    schedFocusedMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
-    schedFocusedMarkers=[];
-    return;
-  }
-  if(!mapObj||!geocoder){toast('Map not ready yet');schedFocusedVisible=false;return;}
-  const active=focused.filter(f=>f.address||(f.lat&&f.lng));
-  if(!active.length){toast('No focused customers to show');schedFocusedVisible=false;return;}
-  const bounds=new google.maps.LatLngBounds();
-  markers.forEach(m=>{try{if(m._latLng)bounds.extend(m._latLng);}catch(e){}});
-  active.forEach(f=>{
-    const ini=(f.name||'?').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
-    const fsvg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44"><rect x="2" y="2" width="32" height="32" rx="8" fill="${fc}" stroke="#fff" stroke-width="2.5"/><polygon points="12,34 24,34 18,44" fill="${fc}"/><text x="18" y="18" text-anchor="middle" fill="#fff" font-size="10" font-family="-apple-system,sans-serif" font-weight="700" dominant-baseline="middle">${ini}</text></svg>`;
-    const pinUrl='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(fsvg);
-    const placeFocusedPin=(lat,lng)=>{
-      const pos={lat,lng};
-      const isHidden=f.schedVisible===false;
-      const m=new google.maps.Marker({
-        position:pos,map:isHidden?null:mapObj,
-        icon:{url:pinUrl,scaledSize:new google.maps.Size(36,44),anchor:new google.maps.Point(18,44)},
-        title:f.name,zIndex:4
-      });
-      m._gid='schedFocused';m._name=f.name;
-      const detail=`${f.dog||''}${f.breed?' · '+f.breed:''} · ${f.size||''}`;
-      const iw=new google.maps.InfoWindow({content:`<div style="font-family:-apple-system,sans-serif;padding:2px;min-width:130px"><div style="font-weight:700;font-size:11px">${f.name}</div><div style="font-size:10px;color:#666">${detail}</div><div style="font-size:9px;color:#aaa">${f.address||''}</div></div>`});
-      m.addListener('click',()=>iw.open(mapObj,m));
-      schedFocusedMarkers.push(m);
-      if(!isHidden){bounds.extend(pos);if(!bounds.isEmpty())try{mapObj.fitBounds(bounds,{padding:50});}catch(e){}}
-    };
-    if(f.lat&&f.lng){placeFocusedPin(f.lat,f.lng);}
-    else{geoCode(f.address,(lat,lng)=>{f.lat=lat;f.lng=lng;placeFocusedPin(lat,lng);},f.name);}
-  });
-  renderSchedFocusedDrawer();
-  toast(`Showing ${active.length} focused customer${active.length!==1?'s':''} on map`);
-}
-
-function getMapRef(prefix){
-  return mapObj;
-}
-function setupPinBar(prefix,_unused,pinsArr,extraAction){
-  const inp=document.getElementById(prefix+'-pin-inp');
-  const drop=document.getElementById(prefix+'-pin-drop');
-  const clear=document.getElementById(prefix+'-pin-clear');
-  const prompt=document.getElementById(prefix+'-pin-prompt');
-  const pinsRow=document.getElementById(prefix+'-saved-pins');
-  if(!inp||!drop)return;
-  drop.addEventListener('click',()=>{
-    const v=inp.value.trim();if(!v)return;
-    // If this tab's map hasn't been initialized, show the tab first so the div is visible
-    const needsInit=(prefix==='wl'&&!mapObj)||(prefix==='ct'&&!mapObj);
-    if(needsInit){
-      showPage(prefix==='wl'?'waitlist':prefix==='ct'?'contacts':'schedule');
-    }
-    if(prompt){document.getElementById(prefix+'-pin-addr').textContent=v;prompt.style.display='flex';}
-    addSavedPin(prefix,v,window._dropPinColor||'#991b1b',pinsArr,pinsRow);
-    inp.value='';
-  });
-  if(clear)clear.addEventListener('click',()=>clearPins(prefix,pinsArr,pinsRow));
-  const justBtn=document.getElementById(prefix+'-pin-just');
-  if(justBtn)justBtn.addEventListener('click',()=>{if(prompt)prompt.style.display='none';});
-  if(extraAction){
-    const addBtn=document.getElementById(prefix+'-pin-add');
-    if(addBtn)addBtn.addEventListener('click',()=>{
-      if(prompt){const addr=document.getElementById(prefix+'-pin-addr').textContent;extraAction(addr);prompt.style.display='none';}
-    });
-  }
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')drop.click();});
-}
-function addSavedPin(prefix,addr,color,pinsArr,pinsRow){
-  if(pinsRow){
-    pinsRow.style.display='flex';
-    const sp=document.createElement('div');sp.className='sp';
-    sp.innerHTML='<div class="sp-dot" style="background:'+color+'"></div><span>'+( addr.length>28?addr.substring(0,28)+'\u2026':addr )+'</span><span class="sp-x">\xd7</span>';
-    sp.querySelector('.sp-x').addEventListener('click',()=>{
-      sp.remove();
-      if(pinsRow.querySelectorAll('.sp').length===0)pinsRow.style.display='none';
-    });
-    const clr=pinsRow.querySelector('.clr-all');
-    if(clr)pinsRow.insertBefore(sp,clr);else pinsRow.appendChild(sp);
-    if(!pinsRow.querySelector('.clr-all')){
-      const c=document.createElement('span');c.className='clr-all';c.textContent='Clear all';
-      c.addEventListener('click',()=>clearPins(prefix,pinsArr,pinsRow));pinsRow.appendChild(c);
-    }
-  }
-  if(geocoder||mapObj){
-    const doGeocode=(attempts)=>{
-      attempts=attempts||0;
-      if(attempts>30){toast('Map not ready — try again in a moment');return;}
-      const m2=getMapRef(prefix);
-      if(!m2||!geocoder){setTimeout(()=>doGeocode(attempts+1),300);return;}
-      geoCode(addr,(lat,lng)=>{
-        const m=new google.maps.Marker({
-          position:{lat,lng},map:m2,
-          icon:{url:makeSVGPin(window._dropPinColor||'#991b1b','●',28),scaledSize:new google.maps.Size(28,28),anchor:new google.maps.Point(14,14)},
-          title:addr,zIndex:5
-        });
-        m._gid='pin';m._name=addr;
-        pinsArr.push(m);
-        m2.panTo({lat,lng});
-      },addr);
-    };
-    doGeocode(0);
-  } else {
-    toast('Paste your Maps API key first to enable pins');
-  }
-}
-function clearPins(prefix,pinsArr,pinsRow){
-  pinsArr.forEach(m=>{try{m.setMap(null);}catch(e){}});pinsArr.length=0;
-  if(pinsRow){pinsRow.innerHTML='';pinsRow.style.display='none';}
-  const prompt=document.getElementById(prefix+'-pin-prompt');
-  if(prompt)prompt.style.display='none';
-}
 
 
 // ── MOEGO WAITLIST ────────────────────────────────────────────
@@ -2166,7 +1784,7 @@ function renderContactResults(){
   const box=document.createElement('div');box.className='results-box';
   box.innerHTML=contactResults.map((c,i)=>{
     const ini=c.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const added=queue.some(q=>q.name===c.name)||waitlist.some(w=>w.name===c.name);
+    const added=queue.some(q=>q.name===c.name);
     const meta=[c.phone,c.email].filter(Boolean).join(' · ');
     return `<div class="ri${added?' sel':''}" data-idx="${i}">
       <div class="ri-av">${ini}</div>
@@ -2204,76 +1822,11 @@ function showDogForm(){
       <div class="fg"><label>Pref groomer</label><select id="df-gr"><option value="">Any</option>${GROOMERS.map(g=>`<option value="${g.id}">${g.name}</option>`).join('')}</select></div>
       <div class="fg full"><label>Notes</label><textarea id="df-notes" placeholder="gate code, anxious dog…"></textarea></div>
     </div>
-    <button class="add-q-btn" data-action="add-q">Add to queue + waitlist</button>
+    <button class="add-q-btn" data-action="add-q">Add to queue</button>
   </div>`;
   if(selectedContact.biography){const n=document.getElementById('df-notes');if(n)n.value=selectedContact.biography.substring(0,200);}
 }
-function addToQueueAndWaitlist(){
-  if(!selectedContact)return;
-  const dog=document.getElementById('df-dog')?.value||'';
-  const breed=document.getElementById('df-breed')?.value||'';
-  const size=document.getElementById('df-size')?.value||'md';
-  const svc=document.getElementById('df-svc')?.value||'Full groom';
-  const tp=document.getElementById('df-tp')?.value||'any';
-  const gr=document.getElementById('df-gr')?.value||'';
-  const notes=document.getElementById('df-notes')?.value||'';
-  const today=toYMD(new Date());
-  const week=toYMD(new Date(Date.now()+7*864e5));
-  const wlEntry={id:Date.now(),name:selectedContact.name,phone:selectedContact.phone||'',email:selectedContact.email||'',
-    address:selectedContact.address||'',dog,breed,size,slotComplexity:getSlotWeight(size,''),svc,
-    timePref:tp,dateFrom:today,dateTo:week,prefGroomer:gr,status:'active',notes,addedDate:today,lat:null,lng:null};
-  waitlist.push(wlEntry);
-  // Geocode immediately and save lat/lng back
-  if(wlEntry.address){
-    geoCode(wlEntry.address,(lat,lng)=>{wlEntry.lat=lat;wlEntry.lng=lng;saveWaitlistToSheets();},wlEntry.name);
-  } else { saveWaitlistToSheets(); }
-  const detail=`${dog||'Dog'}·${SIZE_LABELS[size]||size}·${svc}`;
-  const qItem={name:selectedContact.name,detail,type:'unassigned',address:selectedContact.address||'',lat:null,lng:null,mapVisible:true};
-  queue.push(qItem);
-  // Place orange pin on schedule map immediately
-  if(qItem.address&&mapObj&&geocoder){
-    const bounds=new google.maps.LatLngBounds();
-    markers.forEach(m=>{try{bounds.extend(m.getPosition());}catch(e){}});
-    placePin(mapObj,qItem.address,'#ea580c','?',qItem.name,qItem.detail,bounds,markers,true,'UNASSIGNED');
-  }
-  renderQueue();
-  document.getElementById('dog-form-area').innerHTML='';
-  document.getElementById('results-area').innerHTML='';
-  document.getElementById('srch-inp').value='';
-  selectedContact=null;contactResults=[];
-  toast(wlEntry.name+' added to queue + waitlist');
-}
-
 // ── WAITLIST ──────────────────────────────────────────────────
-async function loadWaitlistFromSheets(){
-  try{
-    const res=await apiGet('waitlist');
-    if(!res.ok){loadWaitlistFromLocal();return;}
-    if(res.rows&&res.rows.length){
-      waitlist=res.rows.map(rowToWlEntry).filter(Boolean);
-      localStorage.setItem('spotless_waitlist',JSON.stringify(waitlist));
-      sheetsReady=true;
-    }else{sheetsReady=true;loadWaitlistFromLocal();}
-    renderWaitlist();
-    // Show the waitlist overlay toggle on the Schedule tab
-    const wlBtn=document.getElementById('sched-wl-toggle');
-    const focBtn=document.getElementById('sched-focused-toggle');
-    if(wlBtn&&waitlist.filter(w=>w.status!=='ignored'&&w.address).length>0)wlBtn.style.display='';
-    if(focBtn&&focused.filter(f=>f.address||(f.lat&&f.lng)).length>0)focBtn.style.display='';
-    // Init or geocode waitlist map
-    let ga=0;const tryG=()=>{
-      if(mapObj&&geocoder)geocodeAllWaitlist();
-      else if(geocoder&&!mapObj){initWLMap();}
-      else if(ga++<20)setTimeout(tryG,500);
-    };tryG();
-    document.getElementById('wl-sub').textContent=`${waitlist.filter(w=>w.status==='active').length} active · synced with Google Sheets`;
-  }catch(e){loadWaitlistFromLocal();}
-}
-function loadWaitlistFromLocal(){
-  const wl=localStorage.getItem('spotless_waitlist');
-  if(wl){try{waitlist=JSON.parse(wl);}catch(e){}}
-  renderWaitlist();
-}
 function rowToWlEntry(row){
   if(!row||!row[1])return null;
   const cleanDate=s=>s?String(s).split('T')[0]:'';
@@ -2285,119 +1838,6 @@ function rowToWlEntry(row){
     lat:row[15]?parseFloat(row[15]):null,lng:row[16]?parseFloat(row[16]):null,
     wlStatus:row[17]||'',slotComplexity:1,svc:'Full groom'};
 }
-function wlEntryToRow(w){
-  return[w.id||'',w.name||'',w.phone||'',w.email||'',w.address||'',w.dog||'',w.breed||'',
-    w.size||'',w.timePref||'',w.dateFrom||'',w.dateTo||'',w.prefGroomer||'',w.notes||'',
-    w.status||'active',w.addedDate||toYMD(new Date()),w.lat!=null?w.lat:'',w.lng!=null?w.lng:'',
-    w.wlStatus||''];
-}
-async function saveWaitlistToSheets(){
-  localStorage.setItem('spotless_waitlist',JSON.stringify(waitlist));
-  try{await apiPost('saveWaitlist',{rows:waitlist.map(wlEntryToRow)});sheetsReady=true;}
-  catch(e){console.warn('Sheets save failed:',e.message);}
-}
-async function migrateLocalToSheets(){
-  const local=localStorage.getItem('spotless_waitlist');
-  if(!local){alert('No local data to migrate.');return;}
-  let entries;try{entries=JSON.parse(local);}catch(e){alert('Corrupted local data.');return;}
-  if(!entries.length){alert('Local waitlist is empty.');return;}
-  const btn=document.getElementById('migrate-btn');if(btn)btn.textContent='⏳…';
-  waitlist=entries;
-  try{
-    const res=await apiPost('saveWaitlist',{rows:waitlist.map(wlEntryToRow)});
-    if(res.ok){sheetsReady=true;toast(`✅ Migrated ${entries.length} entries`);if(btn)btn.textContent='✅ Done';}
-    else{alert('Migration failed: '+res.error);if(btn)btn.textContent='⬆ Migrate local → Sheets';}
-  }catch(e){alert('Migration failed: '+e.message);if(btn)btn.textContent='⬆ Migrate local → Sheets';}
-}
-function renderWaitlist(){
-  const el=document.getElementById('wl-cards');if(!el)return;
-  if(!waitlist.length){el.innerHTML='<div style="font-size:10px;color:#aaa;text-align:center;padding:20px">No waitlist entries</div>';return;}
-  el.innerHTML=waitlist.map((w,i)=>{
-    const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-    const ignored=w.status==='ignored';
-    const wlSt=w.wlStatus||'';
-    const stClass=wlSt?`status-${wlSt}`:'';
-    return`<div class="wl-card${ignored?' ignored':''}${stClass?' '+stClass:''}" id="wlc-${i}">
-      <div class="wl-hd">
-        <div class="wl-av">${ini}</div>
-        <div style="flex:1;min-width:0">
-          <div class="wl-name">${w.name}</div>
-          <div class="wl-pet">${w.dog||'Dog'}·${w.breed||SIZE_LABELS[w.size]||w.size}</div>
-        </div>
-        <div class="wl-hd-btns">
-          <button class="ic-btn eye" data-action="toggle-wl-pin" data-idx="${i}" title="Show on map">👁</button>
-          <button class="ic-btn" data-action="remove-wl" data-idx="${i}" title="Remove">×</button>
-        </div>
-      </div>
-      <div class="wl-body">
-        <div class="wl-info">
-          <div>📅 ${fmtDate(w.dateFrom)||'–'} to ${fmtDate(w.dateTo)||'–'} · ${w.timePref==='any'?'Flexible':w.timePref||'Flexible'}</div>
-          <div>👤 ${w.prefGroomer?(GROOMERS.find(g=>g.id===w.prefGroomer)?.name||w.prefGroomer):'Any groomer'}</div>
-          ${w.address?`<div>📍 ${w.address}</div>`:''}
-          ${w.phone?`<div>📞 ${w.phone}</div>`:''}
-        </div>
-        <button class="notes-toggle" data-action="toggle-notes" data-target="wl-notes-${i}">
-          <span class="notes-arrow" id="wl-arr-${i}">▸</span>
-          <span style="font-size:9px">📝 Notes${w.notes?' ':'— empty'}</span>
-        </button>
-        <div class="notes-content" id="wl-notes-${i}">${w.notes||'<em style="color:#aaa">No notes</em>'}</div>
-      </div>
-      <div class="wl-foot">
-        <span class="wsb ${ignored?'wsb-ignored':'wsb-active'}">${ignored?'Ignored':'Active'}</span>
-        <button class="wl-status-btn ${wlSt?`wl-status-${wlSt}`:'wl-status-none'}" data-action="cycle-wl-status" data-idx="${i}">● ${WL_STATUS_LABELS[wlSt]||'No status'}</button>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:8px;padding:2px 6px" data-action="edit-wl" data-idx="${i}">Edit</button>
-        ${ignored?`<button class="btn btn-ghost btn-sm" style="font-size:8px;padding:2px 6px" data-action="restore-wl" data-idx="${i}">Restore</button>`
-          :`<button class="btn btn-primary btn-sm" style="font-size:8px;padding:2px 6px" data-action="promote-lead" data-idx="${i}">→ Leads</button>`}
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('wl-sub').textContent=`${waitlist.filter(w=>w.status==='active').length} active · synced with Google Sheets`;
-}
-function showAddWaitlistForm(prefillAddr){
-  const el=document.getElementById('wl-add-form');
-  el.innerHTML=`<div class="wl-add-form">
-    <div class="wl-add-title"><span>${prefillAddr?'Add from pin':'Add customer'}</span><button style="background:none;border:none;cursor:pointer;font-size:13px;color:#aaa" data-action="close-wl-form">×</button></div>
-    <div class="fg2">
-      <div class="fg"><label>Name</label><input type="text" id="waf-name" placeholder="Full name"></div>
-      <div class="fg"><label>Phone</label><input type="text" id="waf-phone" placeholder="913-555-…"></div>
-      <div class="fg full"><label>Address</label><input type="text" id="waf-addr" placeholder="Street address, city, state" value="${prefillAddr||''}"></div>
-      <div class="fg"><label>Dog name</label><input type="text" id="waf-dog" placeholder="Biscuit"></div>
-      <div class="fg"><label>Size</label><select id="waf-size"><option value="xs">X-Small</option><option value="sm">Small</option><option value="md" selected>Medium</option><option value="lg">Large</option><option value="xl">XL</option><option value="sdoodle">Sm Doodle</option><option value="mdoodle">Med Doodle</option><option value="ldoodle">Lg Doodle</option><option value="cat">Cat</option></select></div>
-      <div class="fg"><label>Date from</label><input type="date" id="waf-from"></div>
-      <div class="fg"><label>Date to</label><input type="date" id="waf-to"></div>
-      <div class="fg"><label>Time pref</label><select id="waf-tp"><option value="any">Flexible</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option></select></div>
-      <div class="fg"><label>Pref groomer</label><select id="waf-gr"><option value="">Any</option>${GROOMERS.map(g=>`<option value="${g.id}">${g.name}</option>`).join('')}</select></div>
-      <div class="fg full"><label>Notes</label><textarea id="waf-notes" placeholder="Gate code, anxious dog, call ahead…" style="height:44px"></textarea></div>
-    </div>
-    <div style="display:flex;gap:5px;margin-top:6px">
-      <button class="btn btn-primary" style="flex:1;padding:6px" data-action="save-wl-form">Save to Sheets →</button>
-      <button class="btn btn-ghost" style="padding:6px" data-action="close-wl-form">Cancel</button>
-    </div>
-  </div>`;
-  const today=new Date();
-  document.getElementById('waf-from').value=toYMD(today);
-  const week=new Date(today);week.setDate(today.getDate()+7);
-  document.getElementById('waf-to').value=toYMD(week);
-}
-function saveWLForm(){
-  const name=document.getElementById('waf-name')?.value?.trim();
-  if(!name){toast('Name is required');return;}
-  const entry={id:Date.now(),name,phone:document.getElementById('waf-phone')?.value||'',email:'',
-    address:document.getElementById('waf-addr')?.value||'',dog:document.getElementById('waf-dog')?.value||'',
-    breed:'',size:document.getElementById('waf-size')?.value||'md',
-    timePref:document.getElementById('waf-tp')?.value||'any',
-    dateFrom:document.getElementById('waf-from')?.value||'',dateTo:document.getElementById('waf-to')?.value||'',
-    prefGroomer:document.getElementById('waf-gr')?.value||'',notes:document.getElementById('waf-notes')?.value||'',
-    status:'active',addedDate:toYMD(new Date()),lat:null,lng:null,slotComplexity:1,svc:'Full groom'};
-  waitlist.push(entry);saveWaitlistToSheets();
-  document.getElementById('wl-add-form').innerHTML='';
-  document.getElementById('wl-pin-form').innerHTML='';
-  renderWaitlist();if(mapObj&&geocoder)geocodeAllWaitlist();
-  toast(name+' added to waitlist');
-}
-
-// ── FOCUSED VIEW ──────────────────────────────────────────────
-let focusedMarkers=[], focusedPinsVisible=false;
 
 function rowToFocusedEntry(row){
   if(!row||!row[1])return null;
@@ -2620,20 +2060,6 @@ async function importContactFromPaste(){
     }
   }catch(e){toast('Error: '+e.message);if(btn)btn.textContent='Clean + import';}
 }
-function addSelectedToWaitlist(){
-  const rows=document.querySelectorAll('.contact-row.selected');
-  let count=0;
-  rows.forEach(r=>{
-    const name=r.getAttribute('data-name');
-    const addr=r.getAttribute('data-addr');
-    if(name&&!waitlist.some(w=>w.name===name)){
-      waitlist.push({id:Date.now()+count,name,phone:r.getAttribute('data-phone')||'',email:'',address:addr||'',dog:'',breed:'',size:'md',timePref:'any',dateFrom:toYMD(new Date()),dateTo:toYMD(new Date(Date.now()+7*864e5)),prefGroomer:'',notes:'',status:'active',addedDate:toYMD(new Date()),lat:null,lng:null,slotComplexity:1,svc:'Full groom'});
-      count++;
-    }
-  });
-  if(count){saveWaitlistToSheets();toast(`✓ ${count} contact${count>1?'s':''} added to waitlist`);}
-  else toast('Already on waitlist');
-}
 function addSelectedToLeads(){
   const rows=document.querySelectorAll('.contact-row.selected');
   let count=0;
@@ -2789,7 +2215,7 @@ async function loadTemplates(){
 function populateTemplateCustomers(){
   const sel=document.getElementById('tpl-customer');if(!sel)return;
   sel.innerHTML='<option value="">— select customer —</option>';
-  const names=new Set([...waitlist.map(w=>w.name),...leads.map(l=>l.name)]);
+  const names=new Set([...leads.map(l=>l.name)]);
   names.forEach(n=>{const opt=document.createElement('option');opt.value=n;opt.textContent=n;sel.appendChild(opt);});
 }
 function renderTemplates(){
@@ -2800,7 +2226,7 @@ function renderTemplates(){
   const filtered=phase==='all'?TEMPLATES:TEMPLATES.filter(t=>t.phase===phase);
   const sel=document.getElementById('tpl-customer');
   const custName=sel?.value||'';
-  const customer=waitlist.find(w=>w.name===custName)||leads.find(l=>l.name===custName);
+  const customer=leads.find(l=>l.name===custName);
   const vars={
     clientFirstName:customer?.name?.split(' ')[0]||'{clientFirstName}',
     petName:customer?.dog||customer?.pet||'{petName}',
@@ -2831,7 +2257,7 @@ function copyTemplate(i){
   const t=filtered[i];if(!t)return;
   const sel=document.getElementById('tpl-customer');
   const custName=sel?.value||'';
-  const customer=waitlist.find(w=>w.name===custName)||leads.find(l=>l.name===custName);
+  const customer=leads.find(l=>l.name===custName);
   const vars={clientFirstName:customer?.name?.split(' ')[0]||'',petName:customer?.dog||customer?.pet||'',clientCity:customer?.address?.split(',')?.slice(-2,-1)[0]?.trim()||''};
   const filled=t.message.replace(/\{(\w+)\}/g,(_,k)=>vars[k]||'{'+k+'}');
   navigator.clipboard.writeText(filled).then(()=>toast('Copied to clipboard')).catch(()=>toast('Copy failed — try manually selecting'));
@@ -2842,7 +2268,7 @@ function sendViaGV(i){
   const t=filtered[i];if(!t)return;
   const sel=document.getElementById('tpl-customer');
   const custName=sel?.value||'';
-  const customer=waitlist.find(w=>w.name===custName)||leads.find(l=>l.name===custName);
+  const customer=leads.find(l=>l.name===custName);
   const vars={
     clientFirstName:customer?.name?.split(' ')[0]||'',
     petName:customer?.dog||customer?.pet||'',
@@ -3047,7 +2473,7 @@ async function loadGroomers(){
 // ── EVENT DELEGATION ──────────────────────────────────────────
 function bindAllHandlers(){
   // Nav
-  ['schedule','waitlist','contacts','leads','templates','tasks','rules','groomers'].forEach(id=>{
+  ['schedule','contacts','leads','templates','tasks','rules','groomers'].forEach(id=>{
     const el=document.getElementById('nl-'+id);
     if(el)el.addEventListener('click',()=>showPage(id));
   });
@@ -3060,14 +2486,11 @@ function bindAllHandlers(){
     'load-btn':()=>loadDay(),
     'sched-wl-toggle':()=>toggleSchedWaitlist(),
     'sched-focused-toggle':()=>toggleSchedFocused(),
-    'add-wl-btn':()=>showAddWaitlistForm(),
-    'wl-refresh-btn':()=>loadWaitlistFromSheets(),
     'search-btn':()=>searchContacts(),
     'migrate-btn':()=>migrateLocalToSheets(),
     'contacts-search-btn':()=>loadContactsSearch(),
     'contact-import-btn':()=>importContactFromPaste(),
     'contacts-load-more':()=>loadMoreContacts(),
-    'contacts-add-wl':()=>addSelectedToWaitlist(),
     'contacts-pin':()=>pinSelectedContacts(),
     'add-lead-btn':()=>addLead('New'),
     'edit-stages-btn':()=>editStages(),
@@ -3100,15 +2523,6 @@ function bindAllHandlers(){
     if(a==='toggle-map'){const gid=t.getAttribute('data-id');groomerVisible[gid]=!groomerVisible[gid];markers.filter(m=>m._gid===gid).forEach(m=>m.setMap(groomerVisible[gid]?mapObj:null));updateStaffPanel();}
     if(a==='toggle-pin'){const q=queue[idx];if(q){q.mapVisible=!q.mapVisible;const m=queueMarkers[q.name];if(m)m.setVisible(q.mapVisible);renderQueue();}}
     if(a==='remove-queue'){queue.splice(idx,1);renderQueue();}
-    if(a==='toggle-wl-pin'){
-      const w=waitlist[idx];if(!w)return;
-      w.mapVisible=w.mapVisible===false?true:false;
-      const wlTabActive=document.getElementById('page-waitlist')?.classList.contains('active');
-      const m=wlMarkers.find(mk=>mk._name===w.name);
-      if(m)m.setMap(w.mapVisible&&wlTabActive?mapObj:null);
-      else if(w.mapVisible&&w.address&&mapObj&&geocoder)geocodeAllWaitlist();
-      renderWaitlist();
-    }
     if(a==='toggle-mwl-pin'){
       const w=mwlData[idx];if(!w)return;
       const mwlTabActive=document.getElementById('page-mwaitlist')?.classList.contains('active');
@@ -3132,14 +2546,7 @@ function bindAllHandlers(){
         mapObj.panTo(pos);
       }
     }
-    if(a==='remove-wl'){if(confirm('Remove from waitlist?')){waitlist.splice(idx,1);saveWaitlistToSheets();renderWaitlist();geocodeAllWaitlist();}}
-    if(a==='restore-wl'){waitlist[idx].status='active';saveWaitlistToSheets();renderWaitlist();}
-    if(a==='cycle-wl-status'){cycleWLStatus(idx);}
-    if(a==='promote-lead'){promoteToLead(idx);}
-    if(a==='edit-wl'){editWLEntry(idx);}
-    if(a==='add-q'){addToQueueAndWaitlist();}
-    if(a==='save-wl-form'){saveWLForm();}
-    if(a==='close-wl-form'){document.getElementById('wl-add-form').innerHTML='';document.getElementById('wl-pin-form').innerHTML='';}
+'wl-pin-form').innerHTML='';}
     if(a==='toggle-notes'){
       const target=t.getAttribute('data-target');
       const content=document.getElementById(target);
@@ -3153,7 +2560,6 @@ function bindAllHandlers(){
   });
   // Pin bars
   setupPinBar('sched',null,schedPins,null);
-  setupPinBar('wl',null,wlPins,(addr)=>showAddWaitlistForm(addr));
   setupPinBar('ct',null,ctPins,null);
   setupPinBar('leads',null,leadsPins,null);
 }
@@ -3196,23 +2602,7 @@ function pinSelectedContacts(){
   });
 }
 async function promoteToLead(idx){
-  const w=waitlist[idx];if(!w)return;
-  if(leads.some(l=>l.name===w.name)){toast(w.name+' already in Leads');return;}
-  const lead={id:Date.now(),name:w.name,phone:w.phone||'',email:w.email||'',address:w.address||'',pet:w.dog||'',stage:'New',subStage:'',contactMethod:'',notes:w.notes||'',lastContact:toYMD(new Date()),reviewLeft:'',lat:w.lat||'',lng:w.lng||''};
-  leads.push(lead);await saveLead(lead);
-  w.status='promoted';saveWaitlistToSheets();renderWaitlist();
-  toast(w.name+' promoted to Leads');
-}
-function editWLEntry(idx){
-  const w=waitlist[idx];if(!w)return;
-  showAddWaitlistForm(w.address);
-  setTimeout(()=>{
-    const nameEl=document.getElementById('waf-name');if(nameEl)nameEl.value=w.name;
-    const phoneEl=document.getElementById('waf-phone');if(phoneEl)phoneEl.value=w.phone||'';
-    const dogEl=document.getElementById('waf-dog');if(dogEl)dogEl.value=w.dog||'';
-    const notesEl=document.getElementById('waf-notes');if(notesEl)notesEl.value=w.notes||'';
-    waitlist.splice(idx,1);
-  },50);
+  // Legacy waitlist removed — promotion handled via Leads tab
 }
 function editStages(){
   const current=STAGES.map(s=>s.name).join(', ');
@@ -3318,25 +2708,7 @@ function applyPresets(){
   window._wlPinColor=getPresetVal('wl_pin_color')||'#0d9488';
   window._focusedPinColor=getPresetVal('focused_pin_color')||'#f59e0b';
   // Re-plot WL markers if color changed and map is ready
-  if(mapObj && geocoder && window._wlPinColor !== prevWlColor && waitlist && waitlist.length){
-    // Update existing markers in place — faster than full re-geocode
-    if(typeof wlMarkers !== 'undefined'){
-      wlMarkers.forEach((m,i)=>{
-        const w=waitlist[i];if(!w)return;
-        const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-        const ringColor=wlStatusRingColor(w.wlStatus||'');
-        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)});}catch(e){}
-      });
-    }
-    if(typeof schedWLMarkers !== 'undefined'){
-      schedWLMarkers.forEach((m,i)=>{
-        const w=waitlist[i];if(!w)return;
-        const ini=(w.name||'').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-        const ringColor=wlStatusRingColor(w.wlStatus||'');
-        try{m.setIcon({url:makeWLPin(ini,ringColor),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)});}catch(e){}
-      });
-    }
-  }
+
   // Re-plot focused markers if color changed
   if(mapObj && window._focusedPinColor !== prevFocusedColor && typeof focusedMarkers !== 'undefined' && focusedMarkers.length){
     // Rebuild focused pin SVGs with new color
